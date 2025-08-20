@@ -1,0 +1,49 @@
+<!-- index.html -->
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0B0F10" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="description" content="MediVerse — AI health chat, report scanner, wearables sync, and diet planning." />
+
+
+    <!-- Favicons & PWA -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0B0F10" />
+    <meta name="msapplication-TileColor" content="#0B0F10" />
+    <meta name="msapplication-TileImage" content="/mstile-150x150.png" />
+    <!-- Inter font -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>MediVerse</title>
+
+    <!-- Fallback base colors while CSS loads -->
+    <style>
+      :root { color-scheme: dark; }
+      html, body { height: 100%; }
+      body { margin: 0; background:#0B0F10; color:#E5E7EB; }
+      #root { min-height: 100%; }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <div style="padding:1rem; text-align:center; background:#0F1412; color:#E5E7EB;">
+        JavaScript is required to run MediVerse.
+      </div>
+    </noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
