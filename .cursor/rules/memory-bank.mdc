@@ -1,0 +1,56 @@
+---
+description: Project memory bank — load on session start, update after major changes.
+alwaysApply: true
+---
+
+# MediVerse Memory Bank — Always Read First
+
+This repo maintains a **memory bank** at `memory-bank/` that captures project
+state across sessions. Treat it as the canonical fast-orientation surface.
+
+## On every new session, before doing significant work
+
+Read these files (in order) so you have context:
+
+1. `memory-bank/projectbrief.md` — what we're building, scope, non-goals.
+2. `memory-bank/productContext.md` — roles, flows, locked product decisions.
+3. `memory-bank/systemPatterns.md` — architecture style, cross-cutting patterns.
+4. `memory-bank/techContext.md` — versions, ports, env vars, gotchas.
+5. `memory-bank/activeContext.md` — current focus, recent changes, next step.
+6. `memory-bank/progress.md` — phase-by-phase status, working endpoints.
+
+If you only have time for two, read **`activeContext.md`** and
+**`progress.md`** — they're the most volatile and tell you where we left off.
+
+The **detailed** design canon lives in `docs/ARCHITECTURE.md` and
+`docs/WORKFLOWS.md`. The memory bank summarizes and links to them — never
+duplicates them.
+
+## After completing a phase or making a major decision
+
+Update **before the chat ends**:
+
+1. **`activeContext.md`** — refresh "Current focus", "Recent changes",
+   "Decisions made this phase", "What's next". This is the single most
+   important file for the next session.
+2. **`progress.md`** — flip the phase status, add the sub-checklist entries,
+   update "Live endpoints" and "Test count".
+3. If a stable file is now wrong, update it too:
+   - `systemPatterns.md` when a new cross-cutting pattern lands or an old one
+     changes.
+   - `techContext.md` when a dep version, port, or env var changes (note any
+     gotcha).
+   - `productContext.md` when a product decision changes (very rare).
+   - `projectbrief.md` only when scope changes (rarer still).
+
+## Rules of thumb
+
+- **No duplication.** If something is fully explained in
+  `docs/ARCHITECTURE.md`, link to it instead of copying.
+- **Ground claims in reality.** Don't write that something works unless it
+  was actually built and verified. Speculation goes in `activeContext.md`,
+  clearly labeled.
+- **Keep files under ~250 lines.** If a file is growing, the detail belongs
+  in `docs/`, not the memory bank.
+- **Stable file names.** Don't rename or restructure the memory bank without
+  updating this rule too.

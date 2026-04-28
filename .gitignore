@@ -1,0 +1,44 @@
+# ---- Environment / secrets ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+
+# ---- IDE ----
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# ---- Logs ----
+*.log
+logs/
+
+# ---- Java / Maven (backend) ----
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+backend/HELP.md
+backend/.flattened-pom.xml
+backend/dependency-reduced-pom.xml
+hs_err_pid*.log
+
+# ---- Node / Next.js (frontend) ----
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.turbo/
+frontend/coverage/
+frontend/next-env.d.ts
+frontend/.env*.local
+
+# ---- Docker ----
+docker-volumes/

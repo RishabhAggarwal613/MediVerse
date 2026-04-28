@@ -1,0 +1,12 @@
+services:
+  # MySQL is provided by the host (native install on port 3306).
+  # Connect from the backend using DB_URL=jdbc:mysql://localhost:3306/mediverse
+  # See .env.example for credentials.
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mediverse-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI -> http://localhost:8025
