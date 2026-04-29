@@ -704,11 +704,11 @@ Each phase ends in a working, testable slice.
 - Frontend chat UI (message list, optimistic updates; streaming deferred).
 
 ### Phase 7 — AI Report Scanning
-- Upload to S3 + send to Gemini Vision.
+- Upload to S3 + send to Gemini Vision. **(Done — `V7__ai_reports.sql`, `GeminiReportVisionClient`, `AiReportService`.)**
 - Strict JSON parsing → `AiReport` persisted.
 - History list + detail.
 - Share with doctor flow (read-only access for the chosen doctor).
-- Frontend: uploader, findings table, share dialog.
+- Frontend: uploader, findings table, share dialog. **(Done — `/patient/ai-reports/*`, `/doctor/reports/[id]`.)**
 
 ### Phase 8 — Polish
 - Doctor dashboard stats.

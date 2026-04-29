@@ -19,6 +19,9 @@ public interface StorageService {
     /** Path prefix for doctor license uploads. */
     String LICENSE_PREFIX = "licenses";
 
+    /** Lab report uploads (S3/local key prefix). */
+    String REPORTS_PREFIX = "reports";
+
     /**
      * Writes {@code bytes} to the store under {@code key}, replacing any
      * prior content at that key.

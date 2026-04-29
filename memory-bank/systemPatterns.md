@@ -138,11 +138,12 @@ method to **strip** the bearer requirement on public endpoints.
 is private; clients fetch via short-lived presigned URLs (5–15 min). Layout:
 `profile-pics/{userId}/{uuid}.{ext}`, `reports/{patientId}/{uuid}.{ext}`.
 
-### 12. AI calls via one remote client (Phases 6 & 7)
+### 12. AI calls via remote Gemini clients (Phases 6 & 7)
 
-`GeminiChatRemoteClient` wraps Generative Language `generateContent`; config is
-`GeminiProperties` (`gemini.api-key`, chat / vision models). Chat uses flash;
-Vision (Phase 7) will use `visionModel`.
+`GeminiChatRemoteClient` wraps Generative Language `generateContent` for chat turns;
+`GeminiReportVisionClient` does the same with `inline_data` (images / PDF)
+for lab reports. Configuration is `GeminiProperties` (`gemini.api-key`, `chat-model`,
+`vision-model`).
 
 ### 13. Email via Spring Mail + Thymeleaf (Phases 2, 5, 8)
 

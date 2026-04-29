@@ -27,6 +27,9 @@ export default function PatientHomePage() {
               <Button asChild variant="outline" size="sm">
                 <Link href="/patient/ai-assistant">AI assistant</Link>
               </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/patient/ai-reports">AI reports</Link>
+              </Button>
             </div>
           </div>
           <LogoutButton />

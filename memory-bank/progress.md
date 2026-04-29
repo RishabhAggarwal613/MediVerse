@@ -2,7 +2,7 @@
 
 Phase-by-phase status, working endpoints, and test counts.
 
-> Last updated: **2026-04-29** — Phase 6 features + **Phase 8 polish reminders** (docs + this file): `mvn spring-boot:run` **exit 137** (SIGKILL) vs real failures; **Gemini 503** mitigations. **`mvn test`** → **20** tests.
+> Last updated: **2026-04-29** — **Phase 7 (AI report scanning)** shipped: Flyway **`V7__ai_reports.sql`**, Gemini Vision client, patient upload/history/share UI, doctor read-only detail. **`mvn test`** → **23** tests (adds **`AiReportControllerTest`**).
 
 ## Phase status
 
@@ -14,44 +14,54 @@ Phase-by-phase status, working endpoints, and test counts.
 | 3 | Frontend foundation + landing + auth UI | Done |
 | 4 | Doctor module | Done |
 | 5 | Appointments | Done |
-| **6** | **AI Health Assistant** | **Done** (Gemini chat + persisted sessions + `/health-tip`; no report scanning) |
-| 7–8 | Report scanning / Polish | Pending |
+| **6** | **AI Health Assistant** | **Done** (Gemini chat + sessions + `/health-tip`) |
+| **7** | **AI Report Scanning** | **Done** (upload + Vision + `ai_reports` + share + patient/doctor pages) |
+| 8 | Polish | Pending |
 
 ## Phase 8 — Polish — reminders (planned; see `docs/ARCHITECTURE.md` Phase 8)
 
 - **`mvn spring-boot:run` + exit 137:** Usually **SIGKILL** (killed process: `fuser`/port free, `kill -9`, **OOM**, or agent/CI timeout)—**not** an application compile failure if logs already show **Tomcat started on 8080**. **Fix:** start the backend again; if OOM, ease memory pressure or set `MAVEN_OPTS=-Xmx512m` (tune as needed).
-- **Gemini unavailable (HTTP 503):** Google’s Generative Language API sometimes returns **503 / `UNAVAILABLE`** (“high demand”). Backend surfaces **`ApiException.upstreamUnavailable`** with the error body. **Mitigation:** retry after a few minutes; change **`GEMINI_CHAT_MODEL`** if one model is overloaded; optional future work: client retries with backoff.
+- **Gemini unavailable (HTTP 503):** Google’s Generative Language API sometimes returns **503 / `UNAVAILABLE`** (“high demand”). Backend surfaces **`ApiException.upstreamUnavailable`** with the error body. **Mitigation:** retry after a few minutes; change **`GEMINI_CHAT_MODEL`** / **`GEMINI_VISION_MODEL`** if one model is overloaded; optional future work: client retries with backoff.
 
 ## Test count
 
-Backend: **`mvn test`** → **20** tests (includes **`AiControllerTest`**, **`AppointmentControllerTest`**).
+Backend: **`mvn test`** → **23** tests (includes **`AiControllerTest`**, **`AiReportControllerTest`**, **`AppointmentControllerTest`**).
 
-## Phase 6 — AI Health Assistant — features shipped
+## Phase 7 — AI Report Scanning — shipped
 
 ### Backend
 
-- Migration **`V6__ai_chat.sql`**.
-- Package **`com.mediverse.ai`** — `GeminiChatRemoteClient` (Generative Language `generateContent`), `AiChatService`, `AiHealthTipService`, `AiController` **`/api/ai`**.
-- **`GeminiProperties`** via `@ConfigurationPropertiesScan` on `MediverseApplication`.
-- **`ApiException.upstreamUnavailable`** for Gemini/network failures.
+- Migration **`V7__ai_reports.sql`** (`ai_reports` + FK to patients/doctors).
+- **`GeminiReportVisionClient`** (`inline_data`, strict JSON extraction).
+- **`AiReportService`**, **`AiReportController`** `/api/ai/reports` (multipart scan, CRUD-lite, share/unshare/delete).
+- Storage keys **`reports/{patientId}/{uuid}.{ext}`** (`StorageService.REPORTS_PREFIX`).
 
-### Live backend endpoints (AI — Phase 6)
+### Live backend endpoints (`/api/ai`)
 
 | Method | Path | Role |
 |--------|------|------|
-| POST | `/api/ai/chat/sessions` | PATIENT |
-| GET | `/api/ai/chat/sessions` | PATIENT |
-| GET | `/api/ai/chat/sessions/{id}/messages` | PATIENT |
-| POST | `/api/ai/chat/sessions/{id}/messages` | PATIENT |
-| GET | `/api/ai/health-tip` | PATIENT |
+| POST | `/api/ai/reports/scan` | PATIENT (multipart `file`) |
+| GET | `/api/ai/reports` | PATIENT |
+| GET | `/api/ai/reports/{id}` | PATIENT (owner) or DOCTOR (if shared) |
+| POST | `/api/ai/reports/{id}/share` | PATIENT `{ "doctorId" }` |
+| POST | `/api/ai/reports/{id}/unshare` | PATIENT |
+| DELETE | `/api/ai/reports/{id}` | PATIENT |
 
-_Report scanning routes under `/api/ai/reports*` are **Phase 7** — not implemented yet._
+(Plus Phase 6 chat + `/health-tip` — see **`docs/ARCHITECTURE.md`**.)
 
 ### Frontend
 
-- **`src/types/ai.ts`**, **`src/lib/api/ai.ts`**
-- **`/patient/ai-assistant`** — chat UI + daily tip
-- **`RoleAppNav`** — “AI assistant”; patient dashboard links
+- **`src/lib/api/reports.ts`**, types in **`src/types/ai.ts`**
+- **`/patient/ai-reports`**, **`/patient/ai-reports/scan`**, **`/patient/ai-reports/[id]`**
+- **`/doctor/reports/[id]`** (shared report read-only deep link)
+- **RoleAppNav** + patient home link to AI reports.
+
+---
+
+## Phase 6 — AI Health Assistant — (reference)
+
+- Migration **`V6__ai_chat.sql`**, **`AiController`** chat paths, **`GeminiChatRemoteClient`**, **`AiHealthTipService`**.
+- Patient UI **`/patient/ai-assistant`**.
 
 ---
 
