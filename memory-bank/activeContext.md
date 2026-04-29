@@ -3,7 +3,7 @@
 Update at phase boundaries or when pausing mid-phase. Answers: what happened,
 what's in progress, what's next.
 
-> Last updated: **Phase 3 complete** — frontend auth foundation merged and **pushed to `origin/main`**.
+> Last updated: **Phase 3 complete** — frontend auth foundation pushed (**`da6f4c1`** on `main`).
 
 ## Current focus
 

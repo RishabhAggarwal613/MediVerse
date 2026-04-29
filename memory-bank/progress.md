@@ -2,7 +2,7 @@
 
 Phase-by-phase status, working endpoints, and test counts.
 
-> Last updated: **Phase 3 complete** — merged to **`origin/main`** (frontend auth stack + memory bank).
+> Last updated: **Phase 3 complete** — merged to **`origin/main`** (commit **`da6f4c1`**, Phase 3 frontend auth).
 
 ## Phase status
 
