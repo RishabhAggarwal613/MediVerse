@@ -3,38 +3,51 @@
 Update at phase boundaries or when pausing mid-phase. Answers: what happened,
 what's in progress, what's next.
 
-> Last updated: **Phase 3 complete** — frontend auth foundation pushed (**`da6f4c1`** on `main`).
+> Last updated: **Phase 4 pushed** — **`c6ee4bd`** on **`main`**.
 
 ## Current focus
 
-**Phase 4 — Doctor module** — next milestone per `docs/ARCHITECTURE.md` (doctor profile, search/list,
-availability, frontend surfaces). Phase 3 is closed.
-
-## Phase 3 snapshot (complete)
-
-- **HTTP:** Axios `api` + Bearer, single-flight `/auth/refresh`; `fromAxios` / unwrap maps API envelopes.
-- **State:** Zustand persist (`mediverse-auth`); OAuth uses `setOAuthTokens` then `GET /users/me`.
-- **UI:** TanStack Query root provider; RHF + Zod forms; multipart doctor signup (`data` + `license`).
-- **Routes:** `/login`, `/signup/*`, `/forgot-password`, `/reset-password`, `/verify-email`, `/oauth/callback`,
-  `/patient`, `/doctor`; **`RedirectIfAuthenticated`** on `(marketing)` — logged-in users hitting login/signup/forgot redirect to role dashboard (`oauth/callback` excluded).
+**Phase 5 — Appointments** — booking from free slots, doctor request handling, per
+`docs/ARCHITECTURE.md`.
 
 ## Locked decisions (unchanged)
 
 See `progress.md` and `systemPatterns.md`.
 
-## Recent implementation notes
+## Phase 4 snapshot (complete)
 
-- **Public auth guard:** `(marketing)` layout mounts `RedirectIfAuthenticated` — satisfies ARCHITECTURE “redirect already-authenticated users” for auth marketing paths.
-- **Doctor signup:** Single-form + license upload (not multi-step wizard); acceptable for v1; split UI later if desired.
+- **DB:** `V4__doctor_availability_and_slots.sql` — `doctor_availability`, `time_slots`.
+- **Backend:** `DoctorService`, `SlotGenerationService`, `DoctorController` — search, public
+  profile, `/me` profile + availability CRUD, regenerate slots, dashboard stats stub;
+  `GET /api/doctors/specializations`, `GET /api/doctors`, `/{id}`, `/{id}/availability`,
+  `/{id}/slots?date=`.
+- **Frontend:** `src/lib/api/doctors.ts`; patient `/patient/doctors` (+ detail); doctor
+  `/doctor/profile`, `/doctor/availability`; `RoleAppNav` for patient/doctor shells.
+- **Tests:** `@WebMvcTest(DoctorControllerTest)` — `specializations` slice (needs
+  `@EnableConfigurationProperties(StorageProperties.class)` like other MVC tests).
+
+## Decisions made this phase
+
+- Slot regeneration: 14-day horizon from active weekly rules; unbooked slots replaced on
+  regenerate.
+- Public doctor search: verified + approval `APPROVED` only (`DoctorRepository.searchVisible`).
+- Booking from UI deferred to Phase 5 (slots preview only on patient detail).
 
 ## What's next
 
-1. **Phase 4** — doctor profile CRUD, specialization list, search/list + paging, availability + slots, FE list/profile/editor.
-2. Optional polish: toasts for `ApiRequestError`, React Query hooks for `users/me`.
+1. **Phase 5** — appointment entities, book/cancel APIs, doctor inbox, confirmation emails.
+2. Optional: wire `/doctor` home to real dashboard stats when Phase 5 data exists.
+
+## Recent fix (Phase 4 closure)
+
+- **`SecurityConfig`:** Unauthenticated `GET` access for doctor discovery (`/api/doctors`,
+  specializations, `{id}`, `{id}/availability`, `{id}/slots`). `/api/doctors/me/**` stays
+  authenticated (listed first so `me` is not a public `{id}`).
 
 ## Quick verify
 
 ```bash
+cd backend && mvn test
 cd frontend && npm run build && npm run lint
 curl -s http://localhost:8080/api/health
 ```

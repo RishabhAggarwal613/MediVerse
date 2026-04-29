@@ -2,7 +2,7 @@
 
 Phase-by-phase status, working endpoints, and test counts.
 
-> Last updated: **Phase 3 complete** — merged to **`origin/main`** (commit **`da6f4c1`**, Phase 3 frontend auth).
+> Last updated: **Phase 4 shipped** — commit **`c6ee4bd`** on **`main`**.
 
 ## Phase status
 
@@ -11,34 +11,50 @@ Phase-by-phase status, working endpoints, and test counts.
 | 0 | Workspace bootstrap | Done |
 | 1 | Backend foundation | Done |
 | 2 | Auth & Users | Done — backend |
-| 3 | Frontend foundation + landing + auth UI | **Done** — pushed (see Phase 3 section below) |
-| 4–8 | Doctor / Appointments / AI / Polish | Pending |
+| 3 | Frontend foundation + landing + auth UI | Done |
+| **4** | **Doctor module** | **Done — pushed** |
+| 5–8 | Appointments / AI / Polish | Pending |
 
-## Phase 2 — Auth & Users (backend)
+## Test count
 
-Stable reference: **`docs/ARCHITECTURE.md`**, backend test count **15** (`mvn test`), **Live backend endpoints:** same as Phase 2 table in prior commits ( `/api/auth/*`, `/api/users/me`, OAuth when `GOOGLE_CLIENT_*` set).
+Backend: **`mvn test`** → **16** tests (`target/surefire-reports/`).
 
-## Phase 3 — Frontend foundation
+## Phase 4 — Doctor module
 
-Delivered:
+**Backend**
 
-- **HTTP:** Axios `api` with Bearer + 401 → single-queue `/auth/refresh` (`src/lib/api/client.ts`).
-- **State:** Zustand persist `mediverse-auth` (`src/stores/auth-store.ts`).
-- **Data:** `@tanstack/react-query` root provider (`src/components/providers/query-provider.tsx`).
-- **Pages:** `/login`, `/signup/patient`, `/signup/doctor` (multipart), `/forgot-password`, `/reset-password?token`, `/verify-email?token`, `/oauth/callback`.
-- **App shells:** `/patient`, `/doctor` with role gates (`RequireRole`, `useEnsureUser`).
-- **Tooling:** `npm run build`, `npm run lint` pass.
+- Migration `V4__doctor_availability_and_slots.sql`.
+- Package `com.mediverse.doctor` — entities, repos, DTOs, `SlotGenerationService`, `DoctorService`, `DoctorController`. Slot regeneration runs when availability rules are added, updated, or deleted (14-day horizon).
 
-### Frontend routes (`localhost:3000`)
+**Live backend endpoints (doctor domain)**
 
-| Path | Notes |
-|------|--------|
-| `/login`, `/signup`, `/signup/patient`, `/signup/doctor` | Wired to `/api/auth/*` |
-| `/forgot-password`, `/reset-password`, `/verify-email` | Wired |
-| `/oauth/callback` | Parses `token`, `refresh`, `expires_at` or `error` |
-| `/patient`, `/doctor` | Post-login dashboards (placeholder) |
+| Method | Path | Notes |
+|--------|------|--------|
+| GET | `/api/doctors/specializations` | Enum-backed list |
+| GET | `/api/doctors` | Search + `specialization`, paging |
+| GET | `/api/doctors/me/profile` | Doctor profile (JWT) |
+| PUT | `/api/doctors/me/profile` | Update profile |
+| GET | `/api/doctors/me/dashboard/stats` | Stub (zeros until Phase 5) |
+| GET | `/api/doctors/me/availability` | Rules (JWT) |
+| POST | `/api/doctors/me/availability` | Add rule |
+| PUT | `/api/doctors/me/availability/{ruleId}` | Update rule |
+| DELETE | `/api/doctors/me/availability/{ruleId}` | Delete rule |
+| GET | `/api/doctors/{id}` | Public profile |
+| GET | `/api/doctors/{id}/availability` | Public active rules |
+| GET | `/api/doctors/{id}/slots?date=YYYY-MM-DD` | Free slots |
+
+**Frontend**
+
+- Patient: `/patient/doctors`, `/patient/doctors/[id]` (booking CTA → Phase 5).
+- Doctor: `/doctor/profile`, `/doctor/availability`.
+- Navigation: `RoleAppNav` in patient/doctor layouts.
+
+## Phase 3 — Frontend foundation (reference)
+
+- HTTP / auth store / Query / auth + signup routes as before.
+- **Routes:** `/patient`, `/doctor`, `/oauth/callback`, etc.
 
 ## Source control
 
 - Remote: `git@github.com:RishabhAggarwal613/MediVerse.git` (SSH).
-- **Phase 3:** committed and pushed to **`main`** (Phase 3 completion commit).
+- **Phase 4** feature commit: **`c6ee4bd`** (on `main` / `origin/main` after push).
