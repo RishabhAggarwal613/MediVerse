@@ -1,0 +1,40 @@
+package com.mediverse.doctor.domain;
+
+import java.time.DayOfWeek;
+
+/**
+ * Matches {@code VARCHAR} values stored in {@code doctor_availability.day_of_week}.
+ */
+public enum ScheduleDay {
+    MON,
+    TUE,
+    WED,
+    THU,
+    FRI,
+    SAT,
+    SUN;
+
+    public static ScheduleDay from(DayOfWeek day) {
+        return switch (day) {
+            case MONDAY -> MON;
+            case TUESDAY -> TUE;
+            case WEDNESDAY -> WED;
+            case THURSDAY -> THU;
+            case FRIDAY -> FRI;
+            case SATURDAY -> SAT;
+            case SUNDAY -> SUN;
+        };
+    }
+
+    public DayOfWeek toDayOfWeek() {
+        return switch (this) {
+            case MON -> DayOfWeek.MONDAY;
+            case TUE -> DayOfWeek.TUESDAY;
+            case WED -> DayOfWeek.WEDNESDAY;
+            case THU -> DayOfWeek.THURSDAY;
+            case FRI -> DayOfWeek.FRIDAY;
+            case SAT -> DayOfWeek.SATURDAY;
+            case SUN -> DayOfWeek.SUNDAY;
+        };
+    }
+}

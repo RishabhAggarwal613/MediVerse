@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 import { LogoutButton } from "@/components/auth/logout-button";
+import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 
 export default function PatientHomePage() {
@@ -17,6 +20,11 @@ export default function PatientHomePage() {
               Bookings, reports, and AI tools will land in later phases. You are
               signed in.
             </p>
+            <div className="mt-6">
+              <Button asChild variant="outline" size="sm">
+                <Link href="/patient/doctors">Find doctors</Link>
+              </Button>
+            </div>
           </div>
           <LogoutButton />
         </div>

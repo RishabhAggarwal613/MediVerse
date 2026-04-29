@@ -98,6 +98,12 @@ only `/oauth2/**` and `/login/oauth2/**`; the main chain is `@Order(1)` with
 /error, /uploads/**
 ```
 
+**Phase 4 — doctor discovery (public `GET` without Bearer):**
+`SecurityConfig` also permits `GET /api/doctors`, `/api/doctors/specializations`,
+`/api/doctors/*/availability`, `/api/doctors/*/slots`, and `GET /api/doctors/*` (public profile).
+`/api/doctors/me` and `/api/doctors/me/**` are listed **before** those patterns so `me`
+is never treated as a numeric id.
+
 ### 8. JWT auth ✅ (Phase 2)
 
 - Access token (~15 min, HS256, `jjwt`) — `sub` = user id, claims `email`, `role`.

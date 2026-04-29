@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { registerPatient } from "@/lib/api/auth";
 import { ApiRequestError } from "@/lib/api/errors";
-import { getGoogleOAuthUrl } from "@/lib/env";
+import { GoogleOAuthOption } from "@/components/forms/google-oauth-option";
 import { dashboardPath } from "@/lib/nav";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -130,16 +130,7 @@ export function PatientSignupForm() {
         {isSubmitting ? "Creating account…" : "Create patient account"}
       </Button>
 
-      <div className="relative py-1 text-center text-xs text-muted-foreground">
-        <span className="relative z-10 bg-white/80 px-2 dark:bg-background/80">
-          or continue with
-        </span>
-        <span className="absolute inset-x-0 top-1/2 h-px bg-border" />
-      </div>
-
-      <Button type="button" variant="outline" className="w-full" asChild>
-        <a href={getGoogleOAuthUrl()}>Google</a>
-      </Button>
+      <GoogleOAuthOption />
 
       <p className="text-center text-xs text-muted-foreground">
         Already registered?{" "}

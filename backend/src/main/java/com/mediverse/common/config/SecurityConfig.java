@@ -4,6 +4,7 @@ import com.mediverse.auth.security.JwtAuthenticationFilter;
 import com.mediverse.common.security.RestAccessDeniedHandler;
 import com.mediverse.common.security.RestAuthenticationEntryPoint;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -94,6 +95,13 @@ public class SecurityConfig {
                 .anonymous(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
+                        // Doctor discovery (GET) is public; doctor self-service lives under /me/**
+                        .requestMatchers("/api/doctors/me", "/api/doctors/me/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/doctors").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/doctors/specializations").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/doctors/*/availability", "/api/doctors/*/slots")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/doctors/*").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(authenticationEntryPoint)

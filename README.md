@@ -120,6 +120,21 @@ All env vars live in `.env` (which is **gitignored**). Use `.env.example` as a t
 
 Backend variables are read in `backend/src/main/resources/application.yml` via `${VAR:default}` placeholders, so the app boots locally even with most values empty — only DB credentials are needed for Phase 0.
 
+### Google sign-in (OAuth)
+
+The **Sign in with Google** button only works when the backend loads the OAuth2 client. That requires **both** of these to be non-empty (e.g. in your root `.env`, which you export or pass when starting Spring Boot):
+
+| Variable | Purpose |
+|----------|---------|
+| `GOOGLE_CLIENT_ID` | Web client ID from [Google Cloud Console](https://console.cloud.google.com/apis/credentials) |
+| `GOOGLE_CLIENT_SECRET` | Client secret for the same OAuth 2.0 client |
+
+In **Google Cloud Console**, add this **Authorized redirect URI** for local dev:
+
+`http://localhost:8080/login/oauth2/code/google`
+
+After setting variables, restart the backend. `GET /api/health` returns `data.googleOAuthAvailable: true` when Google OAuth is wired; the frontend uses that to show the Google button vs. a setup hint.
+
 ---
 
 ## License

@@ -71,9 +71,9 @@ lightweight `/admin/verifications` page gated by an env-var email allowlist
 |-------|------|--------|
 | 0 | Workspace bootstrap | ✅ Done |
 | 1 | Backend foundation | ✅ Done |
-| 2 | Auth & Users | 🟡 Backend shipped; OAuth callback to FE pending |
-| 3 | Frontend foundation + landing site + auth UI | Partial (landing + role-picker shipped early) |
-| 4 | Doctor module | Pending |
+| 2 | Auth & Users | ✅ Done |
+| 3 | Frontend foundation + landing site + auth UI | ✅ Done |
+| 4 | Doctor module | ✅ Done |
 | 5 | Appointments | Pending |
 | 6 | AI Health Assistant | Pending |
 | 7 | AI Report Scanning | Pending |
