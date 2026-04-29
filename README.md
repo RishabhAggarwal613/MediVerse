@@ -30,7 +30,7 @@ MediVerse/
 - **Auth** — JWT (access + refresh) + Google OAuth2
 - **Database** — MySQL 8
 - **Storage** — AWS S3 (SDK v2)
-- **AI** — Google Gemini (`gemini-1.5-flash` chat, `gemini-1.5-pro` vision)
+- **AI** — Google Gemini (chat + vision models configured in `.env`, e.g. `gemini-2.5-flash` / `gemini-2.5-pro`)
 - **Email** — Spring Mail / SMTP (MailHog locally)
 
 ---
@@ -74,43 +74,62 @@ docker compose up -d
 
 - MailHog SMTP → `localhost:1025`, web UI → http://localhost:8025
 
-### 2. Run the backend
+### 3. Run the backend
 
 ```bash
 cd backend
 mvn spring-boot:run
 ```
 
-Backend starts at http://localhost:8080.
-Swagger UI (once we add controllers in Phase 1) → http://localhost:8080/swagger-ui.html.
+Backend → http://localhost:8080  
+OpenAPI / Swagger UI → http://localhost:8080/swagger-ui.html  
+Health (includes whether Google OAuth env is wired) → http://localhost:8080/api/health
 
-### 3. Run the frontend
+### 4. Run the frontend
 
 ```bash
 cd frontend
-npm install   # already done by create-next-app, but safe to re-run
+npm install   # first clone / after dependency changes
 npm run dev
 ```
 
-Frontend → http://localhost:3000.
+Frontend → http://localhost:3000
+
+---
+
+## Doctor verification (admin)
+
+v1 does **not** define a dedicated `ADMIN` user role. A **comma-separated allowlist** in repo-root `.env` — **`ADMIN_EMAILS`** (backend: `mediverse.admin.emails`) — marks accounts that may use the verification queue. After signing in as an allowlisted user, open **http://localhost:3000/admin/verifications** (also linked from the main nav when `user.admin` is true).
+
+Backend routes (JWT required; 403 if not allowlisted):
+
+| Method | Path |
+|--------|------|
+| GET | `/api/admin/doctors/pending` |
+| POST | `/api/admin/doctors/{doctorId}/approve` |
+| POST | `/api/admin/doctors/{doctorId}/reject` (JSON body: optional `reason`) |
+
+Patient and doctor areas also show **onboarding** checklists and **email / license** banners where applicable.
 
 ---
 
 ## Build Phases
 
+Phases **0–8** are implemented. Status detail lives in **`memory-bank/progress.md`**.
+
 | Phase | Goal |
 |-------|------|
-| **0** ✅ | Workspace bootstrap — backend skeleton, frontend skeleton, MySQL via Docker, env scaffolding. |
-| 1 | Backend foundation — config, security skeleton, CORS, OpenAPI, `ApiResponse`, `/api/health`. |
-| 2 | Auth & Users — registration, JWT login, Google OAuth, profile pic upload. |
-| 3 | Frontend foundation — providers, axios client, Zustand auth store, login/register UI. |
-| 4 | Doctor module — profile, search, availability + slot generation. |
-| 5 | Appointments — hybrid booking flow + email notifications + dashboards. |
-| 6 | AI Health Assistant — chat sessions/messages backed by Gemini. |
-| 7 | AI Report Scanning — Gemini Vision + S3 + share-with-doctor. |
-| 8 | Polish — validation, empty/loading/error states, README finalization. |
+| **0** ✅ | Workspace bootstrap |
+| **1** ✅ | Backend foundation — config, security, CORS, OpenAPI, `ApiResponse`, `/api/health` |
+| **2** ✅ | Auth & Users — registration, JWT, Google OAuth, profile |
+| **3** ✅ | Frontend foundation — axios, auth store, login/register |
+| **4** ✅ | Doctor module — profile, search, availability, slots |
+| **5** ✅ | Appointments — booking, email, dashboards |
+| **6** ✅ | AI Health Assistant — Gemini chat |
+| **7** ✅ | AI Report Scanning — Vision, share with doctor |
+| **8** ✅ | Polish — admin verifications, onboarding, banners, profiles/theme (see **`memory-bank/progress.md`**) |
 
-See `docs/ARCHITECTURE.md` for the full design (DB schema, API surface, package layout, security model).
+See **`docs/ARCHITECTURE.md`** for the full design (DB schema, API surface, package layout, security model).
 
 ---
 
@@ -138,6 +157,19 @@ In **Google Cloud Console**, add this **Authorized redirect URI** for local dev:
 `http://localhost:8080/login/oauth2/code/google`
 
 After setting variables, restart the backend. `GET /api/health` returns `data.googleOAuthAvailable: true` when Google OAuth is wired; the frontend uses that to show the Google button vs. a setup hint.
+
+### Admin allowlist (`ADMIN_EMAILS`)
+
+Set **`ADMIN_EMAILS`** in `.env` to a comma-separated list of emails that may access **`/admin/verifications`** and the admin API (see **Doctor verification (admin)** above). Matches **`mediverse.admin.emails`** in Spring.
+
+---
+
+## Verify (tests & build)
+
+```bash
+cd backend && mvn test
+cd frontend && npm run build && npm run lint
+```
 
 ---
 

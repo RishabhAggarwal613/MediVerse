@@ -18,6 +18,7 @@ import com.mediverse.doctor.dto.UpsertAvailabilityRequest;
 import com.mediverse.doctor.repository.DoctorAvailabilityRepository;
 import com.mediverse.doctor.repository.TimeSlotRepository;
 import com.mediverse.appointment.service.AppointmentService;
+import com.mediverse.common.security.AdminAllowlist;
 import com.mediverse.storage.StorageService;
 import com.mediverse.user.domain.Doctor;
 import com.mediverse.user.domain.Role;
@@ -52,6 +53,7 @@ public class DoctorService {
     private final SlotGenerationService slotGenerationService;
     private final StorageService storageService;
     private final AppointmentService appointmentService;
+    private final AdminAllowlist adminAllowlist;
 
     public List<SpecializationOptionDto> listSpecializationOptions() {
         return Arrays.stream(MedicalSpecialization.values())
@@ -323,7 +325,7 @@ public class DoctorService {
     private DoctorPublicDto toPublicDto(Doctor d) {
         User u = d.getUser();
         String phone = u.getPhone();
-        UserDto usr = UserDto.from(u, storageService);
+        UserDto usr = UserDto.from(u, storageService, null, adminAllowlist.contains(u.getEmail()));
         return new DoctorPublicDto(
                 d.getId(),
                 usr,
@@ -335,6 +337,7 @@ public class DoctorService {
                 d.getBio(),
                 d.getPracticeCity(),
                 d.getLanguages(),
+                d.getVerificationStatus(),
                 d.isVerified());
     }
 

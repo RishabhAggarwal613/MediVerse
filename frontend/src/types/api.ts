@@ -57,6 +57,31 @@ export interface UserDto {
   profilePictureUrl: string | null;
   phone: string | null;
   patientProfile: PatientProfileDto | null;
+  /** True when email is listed in backend `ADMIN_EMAILS` (doctor verification queue). */
+  admin?: boolean;
+}
+
+export interface OnboardingItemDto {
+  id: string;
+  label: string;
+  complete: boolean;
+}
+
+export interface OnboardingDto {
+  items: OnboardingItemDto[];
+  completedCount: number;
+  totalCount: number;
+}
+
+export interface AdminPendingDoctorDto {
+  doctorId: number;
+  userId: number;
+  fullName: string;
+  email: string;
+  licenseNumber: string;
+  specialization: string | null;
+  licenseDocumentUrl: string | null;
+  createdAt: string;
 }
 
 export interface AuthResponsePayload {

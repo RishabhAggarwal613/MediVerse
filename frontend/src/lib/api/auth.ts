@@ -1,7 +1,7 @@
 import { fromAxios, fromAxiosVoid } from "@/lib/api/unpack";
 import { api } from "@/lib/api/client";
 
-import type { AuthResponsePayload, Gender, UserDto } from "@/types/api";
+import type { AuthResponsePayload, Gender, UserDto, OnboardingDto } from "@/types/api";
 import type { DecimalString } from "./types";
 
 /** JSON part of doctor signup (paired with multipart `license` file). */
@@ -66,6 +66,10 @@ export function verifyEmailPost(token: string) {
   );
 }
 
+export function resendVerificationEmail() {
+  return fromAxiosVoid(() => api.post("/auth/resend-verification"));
+}
+
 export function forgotPasswordPost(email: string) {
   return fromAxiosVoid(() =>
     api.post("/auth/forgot-password", { email }),
@@ -81,6 +85,10 @@ export function resetPasswordPost(token: string, newPassword: string) {
 /** Current user (Bearer). */
 export function fetchCurrentUser(): Promise<UserDto> {
   return fromAxios<UserDto>(() => api.get("/users/me"));
+}
+
+export function fetchOnboarding(): Promise<OnboardingDto> {
+  return fromAxios<OnboardingDto>(() => api.get("/users/me/onboarding"));
 }
 
 /** Matches backend `UpdateMeRequest` — only `fullName` is required. */

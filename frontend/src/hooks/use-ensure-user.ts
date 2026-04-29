@@ -13,7 +13,9 @@ export function useEnsureUser() {
   const clearSession = useAuthStore((s) => s.clearSession);
 
   useEffect(() => {
-    if (!accessToken || user) return;
+    if (!accessToken) return;
+    // Re-fetch after adding fields (e.g. `admin`) so persisted sessions pick them up.
+    if (user && "admin" in user) return;
     let cancelled = false;
     void fetchCurrentUser()
       .then((u) => {

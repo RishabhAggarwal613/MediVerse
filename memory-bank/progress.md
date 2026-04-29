@@ -2,7 +2,7 @@
 
 Phase-by-phase status, working endpoints, and test counts.
 
-> Last updated: **2026-04-29** — **Profiles & find-doctors polish:** Flyway **`V8`**, expanded **`UserDto`** / **`UpdateMeRequest`** (patient clinical fields), doctor **`practice_city`** / **`languages`**, **`DoctorSummaryDto.availabilitySummary`** from weekly rules, themed app shell + patient find-doctors UX. **`mvn test`** → **23** tests.
+> Last updated: **2026-04-29** — Phase 8 complete; **`README.md`** + memory bank synced. **`mvn test`** → **23** tests.
 
 ## Phase status
 
@@ -16,15 +16,17 @@ Phase-by-phase status, working endpoints, and test counts.
 | 5 | Appointments | Done |
 | **6** | **AI Health Assistant** | **Done** (Gemini chat + sessions + `/health-tip`) |
 | **7** | **AI Report Scanning** | **Done** (upload + Vision + `ai_reports` + share + patient/doctor pages) |
-| **8** | **Polish** | **In progress** (theme, profiles, browse — see snapshot below) |
+| **8** | **Polish** | **Done** (V8 profiles/theme + admin verification UI + onboarding + banners) |
 
-## Phase 8 — in progress (2026-04-29 snapshot)
+## Phase 8 — shipped
 
-- **Data:** **`V8__doctor_practice_fields.sql`** — nullable **`practice_city`**, **`languages`** on **`doctors`**.
-- **Backend:** **`PatientProfileDto`** on **`UserDto`**; **`UserService.updateMe`** updates **`Patient`** when role is PATIENT; **`DoctorService.searchDoctors`** fills **`availabilitySummary`** from active **`DoctorAvailability`** (batch query); doctor public/profile DTOs include practice fields.
-- **Frontend:** **`/patient/profile`** (contact + health baseline); expanded doctor profile; **`/patient/doctors`** dual-theme filters + real availability snippet on cards; shared **`AppPageShell`** / nav / globals.
+- **Earlier batch:** **`V8__doctor_practice_fields.sql`** (`practice_city`, `languages`); patient profile / doctor search UX; themed **`AppPageShell`**; **`DoctorSummaryDto.availabilitySummary`** from weekly availability.
+- **Admin doctor verification:** `GET /api/admin/doctors/pending`, approve/reject; **`/admin/verifications`**; **`ADMIN_EMAILS`** (`UserDto.admin`).
+- **`DoctorPublicDto`:** **`verificationStatus`** (`PENDING` | `APPROVED` | `REJECTED`) for doctor-banner UX.
+- **Onboarding:** **`GET /api/users/me/onboarding`** — checklist on patient & doctor home when incomplete.
+- **Banners:** unverified-email strip + resend; doctor pending/rejected license banner below nav.
 
-## Phase 8 — Polish — reminders (planned; see `docs/ARCHITECTURE.md` Phase 8)
+## Phase 8 — reminders (ops / optional)
 
 - **`mvn spring-boot:run` + exit 137:** Usually **SIGKILL** (killed process: `fuser`/port free, `kill -9`, **OOM**, or agent/CI timeout)—**not** an application compile failure if logs already show **Tomcat started on 8080**. **Fix:** start the backend again; if OOM, ease memory pressure or set `MAVEN_OPTS=-Xmx512m` (tune as needed).
 - **Gemini unavailable (HTTP 503):** Google’s Generative Language API sometimes returns **503 / `UNAVAILABLE`** (“high demand”). Backend surfaces **`ApiException.upstreamUnavailable`** with the error body. **Mitigation:** retry after a few minutes; change **`GEMINI_CHAT_MODEL`** / **`GEMINI_VISION_MODEL`** if one model is overloaded; optional future work: client retries with backoff.

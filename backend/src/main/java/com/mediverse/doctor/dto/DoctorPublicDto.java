@@ -1,6 +1,7 @@
 package com.mediverse.doctor.dto;
 
 import com.mediverse.auth.dto.UserDto;
+import com.mediverse.user.domain.VerificationStatus;
 import java.math.BigDecimal;
 
 public record DoctorPublicDto(
@@ -14,4 +15,5 @@ public record DoctorPublicDto(
         String bio,
         String practiceCity,
         String languages,
+        VerificationStatus verificationStatus,
         boolean verified) {}

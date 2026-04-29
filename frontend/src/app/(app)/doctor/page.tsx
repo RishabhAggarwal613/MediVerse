@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { AppPageShell } from "@/components/app/app-page-shell";
+import { OnboardingChecklist } from "@/components/app/onboarding-checklist";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
@@ -118,6 +119,10 @@ export default function DoctorHomePage() {
             </p>
           </div>
         </header>
+
+        <div className="mt-8">
+          <OnboardingChecklist variant="doctor" />
+        </div>
 
         {/* KPI strip */}
         <section className="mt-12">

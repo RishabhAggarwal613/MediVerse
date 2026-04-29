@@ -13,6 +13,7 @@ import com.mediverse.auth.repository.PasswordResetTokenRepository;
 import com.mediverse.auth.repository.RefreshTokenRepository;
 import com.mediverse.auth.security.JwtService;
 import com.mediverse.common.config.properties.AppProperties;
+import com.mediverse.common.security.AdminAllowlist;
 import com.mediverse.email.EmailService;
 import com.mediverse.storage.StorageService;
 import com.mediverse.user.domain.Patient;
@@ -51,6 +52,7 @@ class AuthServiceGoogleOAuthTest {
     @Mock StorageService storageService;
     @Mock EmailService emailService;
     @Mock AppProperties appProperties;
+    @Mock AdminAllowlist adminAllowlist;
 
     @InjectMocks AuthService authService;
 
@@ -74,6 +76,7 @@ class AuthServiceGoogleOAuthTest {
         when(emailVerificationTokenRepository.save(any())).then(inv -> inv.getArgument(0));
         when(passwordResetTokenRepository.save(any())).then(inv -> inv.getArgument(0));
         when(doctorRepository.save(any())).then(inv -> inv.getArgument(0));
+        when(adminAllowlist.contains(anyString())).thenReturn(false);
     }
 
     @Test

@@ -1,5 +1,7 @@
 import type { UserDto } from "./api";
 
+export type VerificationStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export type ScheduleDay =
   | "MON"
   | "TUE"
@@ -38,6 +40,7 @@ export interface DoctorPublicDto {
   bio: string | null;
   practiceCity: string | null;
   languages: string | null;
+  verificationStatus: VerificationStatus;
   verified: boolean;
 }
 

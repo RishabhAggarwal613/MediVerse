@@ -14,6 +14,7 @@ import com.mediverse.auth.security.JwtService;
 import com.mediverse.auth.security.TokenHasher;
 import com.mediverse.common.api.ApiException;
 import com.mediverse.common.config.properties.AppProperties;
+import com.mediverse.common.security.AdminAllowlist;
 import com.mediverse.email.EmailService;
 import com.mediverse.storage.StorageService;
 import com.mediverse.user.domain.Doctor;
@@ -72,6 +73,7 @@ public class AuthService {
     private final StorageService storageService;
     private final EmailService emailService;
     private final AppProperties appProperties;
+    private final AdminAllowlist adminAllowlist;
 
     @Transactional
     public AuthResponse registerPatient(RegisterPatientRequest req) {
@@ -337,7 +339,18 @@ public class AuthService {
                 .build();
         refreshTokenRepository.save(row);
 
-        return AuthResponse.of(access, refresh, accessExp, refreshExp, UserDto.from(user, storageService));
+        return AuthResponse.of(
+                access,
+                refresh,
+                accessExp,
+                refreshExp,
+                UserDto.from(
+                        user,
+                        storageService,
+                        user.getRole() == Role.PATIENT
+                                ? patientRepository.findByUserId(user.getId()).orElse(null)
+                                : null,
+                        adminAllowlist.contains(user.getEmail())));
     }
 
     private void ensureEmailNotUsed(String email) {

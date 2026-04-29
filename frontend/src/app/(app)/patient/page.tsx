@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { AppPageShell } from "@/components/app/app-page-shell";
+import { OnboardingChecklist } from "@/components/app/onboarding-checklist";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
@@ -152,6 +153,10 @@ export default function PatientHomePage() {
             </p>
           </div>
         </header>
+
+        <div className="mt-8">
+          <OnboardingChecklist variant="patient" />
+        </div>
 
         <div className="mt-12 grid gap-8 lg:grid-cols-12">
           {/* Next appointment highlight */}

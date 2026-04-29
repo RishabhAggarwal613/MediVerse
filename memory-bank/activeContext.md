@@ -3,16 +3,22 @@
 Update at phase boundaries or when pausing mid-phase. Answers: what happened,
 what's in progress, what's next.
 
-> Last updated: **2026-04-29** — **Phase 7** (AI reports) + **Phase 8 partial** (**`V8`**, profiles, find-doctors availability, theme shell). Next: remaining **Phase 8** items in **`docs/ARCHITECTURE.md`**.
+> Last updated: **2026-04-29** — **Phase 8** closed out: README + memory bank aligned, changes pushed to **`main`**.
 
 ## Current focus
 
-**Phase 8 polish** — remainder per **`docs/ARCHITECTURE.md`** (onboarding checklist, admin UX, Dockerfile optional). **Shipped in this batch:** **`V8`** doctor practice fields; patient/doctor profile expansion; find-doctors real weekly availability on cards + dual-theme search; app shell + theme plumbing (see **`progress.md`** Phase 8 snapshot).
+**Phase 8 complete** (see **`progress.md`**). **Optional next:** Gemini 503 retries/backoff, root **Dockerfile** stack ( **`docs/ARCHITECTURE.md`** Phase 8).
+
+## Phase 8 shipped (admin + onboarding polish)
+
+- **Backend:** `DoctorPublicDto.verificationStatus` for doctor profile JSON; `AuthServiceGoogleOAuthTest` mocks `AdminAllowlist`.
+- **Frontend:** `/admin/verifications` (allowlisted admins), `ADMIN_EMAILS` documented in `.env.example`; `UserDto.admin` + `RequireAuth`; nav link when `user.admin === true`; onboarding card on patient/doctor home (`GET /users/me/onboarding`); email-verify + doctor verification banners in role layouts.
+- **`useEnsureUser`:** refetches `/users/me` when persisted session lacks `admin` (migration).
+- **`npm run build` / `npm run lint`:** passing. **`mvn test`:** 23 tests.
 
 ## What's next
 
-- Finish **Phase 8** checklist in **`docs/ARCHITECTURE.md`** (remaining polish items).
-- Optional: **automatic retries/backoff** for Gemini 503 (`progress.md` Phase 8 reminders).
+- Optional: **Gemini 503 retries/backoff**, **Dockerfile** for backend + frontend (see **`docs/ARCHITECTURE.md`** Phase 8).
 
 ## Locked decisions (unchanged)
 

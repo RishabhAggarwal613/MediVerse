@@ -2,6 +2,7 @@ package com.mediverse.user.service;
 
 import com.mediverse.auth.dto.UserDto;
 import com.mediverse.common.api.ApiException;
+import com.mediverse.common.security.AdminAllowlist;
 import com.mediverse.storage.StorageService;
 import com.mediverse.user.domain.Doctor;
 import com.mediverse.user.domain.Patient;
@@ -32,6 +33,7 @@ public class UserService {
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
     private final StorageService storageService;
+    private final AdminAllowlist adminAllowlist;
 
     @Transactional(readOnly = true)
     public UserDto me(User user) {
@@ -117,9 +119,9 @@ public class UserService {
         if (user.getRole() == Role.PATIENT) {
             Patient p =
                     patientRepository.findByUserId(user.getId()).orElse(null);
-            return UserDto.from(user, storageService, p);
+            return UserDto.from(user, storageService, p, adminAllowlist.contains(user.getEmail()));
         }
-        return UserDto.from(user, storageService, null);
+        return UserDto.from(user, storageService, null, adminAllowlist.contains(user.getEmail()));
     }
 
     @Transactional(readOnly = true)

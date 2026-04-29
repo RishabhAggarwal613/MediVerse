@@ -7,6 +7,7 @@ import { LogoutButton } from "@/components/auth/logout-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth-store";
 
 const PATIENT_LINKS = [
   { href: "/patient", label: "Home" },
@@ -24,9 +25,13 @@ const DOCTOR_LINKS = [
   { href: "/doctor/profile", label: "Profile" },
 ];
 
+const ADMIN_LINK = { href: "/admin/verifications", label: "Verifications" };
+
 export function RoleAppNav({ variant }: { variant: "patient" | "doctor" }) {
   const pathname = usePathname();
-  const links = variant === "patient" ? PATIENT_LINKS : DOCTOR_LINKS;
+  const isAdmin = useAuthStore((s) => s.user?.admin === true);
+  const baseLinks = variant === "patient" ? PATIENT_LINKS : DOCTOR_LINKS;
+  const links = isAdmin ? [...baseLinks, ADMIN_LINK] : baseLinks;
   const home = variant === "patient" ? "/patient" : "/doctor";
   const accent = variant === "patient" ? "brand" : "teal";
 
@@ -69,10 +74,16 @@ export function RoleAppNav({ variant }: { variant: "patient" | "doctor" }) {
           aria-label="Main navigation"
         >
           {links.map((link) => {
-            const isRoot = link.href === "/patient" || link.href === "/doctor";
-            const active = isRoot
-              ? pathname === link.href
-              : pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const isRoot =
+              link.href === "/patient" ||
+              link.href === "/doctor" ||
+              link.href === "/admin/verifications";
+            const active =
+              link.href === "/admin/verifications"
+                ? pathname === link.href || pathname.startsWith("/admin/")
+                : isRoot
+                  ? pathname === link.href
+                  : pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.href}
