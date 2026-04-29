@@ -11,10 +11,10 @@ Authoritative detail is in [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md).
 - **Stateless REST API** — no server-side sessions, no CSRF needed. Auth is
   carried in the `Authorization: Bearer <jwt>` header on every request.
 - **Frontend route groups** isolate concerns:
-  - `(marketing)` — public pages (landing, login, signup variants).
-  - `(patient)` — patient-only app shell.
-  - `(doctor)` — doctor-only app shell.
-  - `(admin)` — email-allowlisted verification page.
+  - `(marketing)` — public pages (landing, login, signup, forgot/reset/verify).
+  - `(app)/patient`, `(app)/doctor` — authenticated shells with **`RequireRole`** (client guards; middleware cannot read persisted Zustand).
+  - `oauth/callback` at app root — token query handling (outside marketing layout).
+  - `(admin)` — email-allowlisted verification page (planned).
 
 ## Cross-cutting backend patterns
 
@@ -151,6 +151,10 @@ book/approve/reject/cancel, and a day-before reminder (`@Scheduled`).
   field-level errors via the `details[]` array on `ApiError`.
 - **Axios client with single-flight refresh.** On 401, queue concurrent
   requests, fire one refresh, then replay. One central interceptor.
+- **Auth marketing redirect:** `RedirectIfAuthenticated` in `(marketing)` layout
+  sends users who already have token + profile away from `/login`, `/signup*`,
+  `/forgot-password` toward their role dashboard (`/oauth/callback` excluded).
+- **`useEnsureUser`:** restores `user` from `GET /api/users/me` when token exists after refresh (e.g. hard reload).
 - **Reveal animation** is a tiny in-house `IntersectionObserver` wrapper
   (no external dep).
 - **`next-themes` for dark mode**, with `suppressHydrationWarning` on `<html>`

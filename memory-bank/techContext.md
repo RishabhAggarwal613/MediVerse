@@ -28,16 +28,17 @@ tooling or dependencies change.
 | Thing | Version |
 |---|---|
 | Node | 20+ |
-| Next.js | 14 (App Router) |
+| Next.js | **14.2.x** (App Router) |
 | TypeScript | 5 |
-| Tailwind CSS | 3 |
-| shadcn/ui | latest |
-| TanStack Query | 5 |
-| Zustand | 4 |
-| React Hook Form | 7 |
-| Zod | 3 |
-| `next-themes` | latest |
-| `tailwindcss-animate` | latest |
+| Tailwind CSS | 3.4.x |
+| shadcn/ui | Radix + CVA (see `components/ui`) |
+| TanStack Query | **5** |
+| Axios | **1.15.x** |
+| Zustand | **5** |
+| React Hook Form | **7** |
+| Zod | **4** |
+| `next-themes` | 0.4.x |
+| `tailwindcss-animate` | 1.x |
 
 ### Database
 

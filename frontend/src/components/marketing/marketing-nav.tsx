@@ -5,10 +5,12 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { dashboardPath } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Logo } from "@/components/common/logo";
+import { useAuthStore } from "@/stores/auth-store";
 
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
@@ -21,6 +23,12 @@ const NAV_LINKS = [
 export function MarketingNav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const user = useAuthStore((s) => s.user);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -55,12 +63,20 @@ export function MarketingNav() {
 
         <div className="hidden items-center gap-2 md:flex">
           <ThemeToggle />
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/login">Login</Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link href="/signup">Sign Up</Link>
-          </Button>
+          {mounted && user ? (
+            <Button asChild size="sm">
+              <Link href={dashboardPath(user.role)}>Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href="/signup">Sign Up</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-1 md:hidden">
@@ -93,16 +109,24 @@ export function MarketingNav() {
               </Link>
             ))}
             <div className="mt-2 flex flex-col gap-2 border-t border-border/60 pt-3">
-              <Button
-                asChild
-                variant="outline"
-                onClick={() => setMobileOpen(false)}
-              >
-                <Link href="/login">Login</Link>
-              </Button>
-              <Button asChild onClick={() => setMobileOpen(false)}>
-                <Link href="/signup">Sign Up</Link>
-              </Button>
+              {mounted && user ? (
+                <Button asChild onClick={() => setMobileOpen(false)}>
+                  <Link href={dashboardPath(user.role)}>Dashboard</Link>
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    asChild
+                    variant="outline"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <Link href="/login">Login</Link>
+                  </Button>
+                  <Button asChild onClick={() => setMobileOpen(false)}>
+                    <Link href="/signup">Sign Up</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </Container>
         </div>

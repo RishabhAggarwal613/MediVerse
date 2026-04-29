@@ -1,8 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { LoginForm } from "@/components/forms/login-form";
 import { Container } from "@/components/ui/container";
 
 export const metadata: Metadata = {
@@ -21,21 +20,18 @@ export default function LoginPage() {
           Sign in to MediVerse
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          The login form arrives in <strong>Phase 3</strong>. For now, this
-          page is a placeholder so the navigation flow works end-to-end.
+          Use email and password or continue with Google.
         </p>
-
-        <div className="mt-8 flex flex-col gap-2.5">
-          <Button asChild>
-            <Link href="/">
-              Back to home
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/signup">Don&apos;t have an account? Sign up</Link>
-          </Button>
-        </div>
+        <LoginForm />
+        <p className="mt-8 text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/signup"
+            className="font-semibold text-brand-700 hover:underline dark:text-brand-300"
+          >
+            Sign up
+          </Link>
+        </p>
       </div>
     </Container>
   );
