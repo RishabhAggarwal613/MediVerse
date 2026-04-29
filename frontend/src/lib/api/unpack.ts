@@ -42,10 +42,35 @@ export async function fromAxios<T>(
     const res = await exec();
     return unwrapEnvelope(res.data as ApiResponse<T>);
   } catch (e: unknown) {
-    if (axios.isAxiosError(e) && e.response?.data) {
-      unwrapEnvelope(e.response.data as ApiResponse<T>);
+    if (!axios.isAxiosError(e)) throw e;
+    const payload = e.response?.data;
+    if (
+      payload !== undefined &&
+      payload !== null &&
+      typeof payload === "object" &&
+      "success" in (payload as Record<string, unknown>)
+    ) {
+      try {
+        return unwrapEnvelope(payload as ApiResponse<T>);
+      } catch (inner) {
+        throw inner;
+      }
     }
-    throw e;
+    const st = e.response?.status;
+    const url = e.config?.url ?? "";
+    let extra = "";
+    if (typeof payload === "string") {
+      extra = payload.slice(0, 400);
+    } else if (payload !== undefined && typeof payload !== "object") {
+      extra = String(payload).slice(0, 400);
+    }
+    const base = e.message || "Request failed";
+    if (st === undefined || st === null) {
+      throw new Error(`${base}${url ? ` (${url})` : ""}`);
+    }
+    throw new Error(
+      `${base} (HTTP ${String(st)})${extra ? ` — ${extra}` : ""}`,
+    );
   }
 }
 

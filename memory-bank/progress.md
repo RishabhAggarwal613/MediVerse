@@ -2,7 +2,7 @@
 
 Phase-by-phase status, working endpoints, and test counts.
 
-> Last updated: **Phase 5 complete** — pushed to **`origin/main`** as **`6279143`** (`feat(appointments): Phase 5 bookings, lifecycle emails, dashboard stats`).
+> Last updated: **2026-04-29** — Phase 6 features + **Phase 8 polish reminders** (docs + this file): `mvn spring-boot:run` **exit 137** (SIGKILL) vs real failures; **Gemini 503** mitigations. **`mvn test`** → **20** tests.
 
 ## Phase status
 
@@ -12,61 +12,56 @@ Phase-by-phase status, working endpoints, and test counts.
 | 1 | Backend foundation | Done |
 | 2 | Auth & Users | Done |
 | 3 | Frontend foundation + landing + auth UI | Done |
-| **4** | **Doctor module** | **Done — pushed** |
-| **5** | **Appointments** | **Done — pushed** |
-| 6–8 | AI / Polish | Pending |
+| 4 | Doctor module | Done |
+| 5 | Appointments | Done |
+| **6** | **AI Health Assistant** | **Done** (Gemini chat + persisted sessions + `/health-tip`; no report scanning) |
+| 7–8 | Report scanning / Polish | Pending |
+
+## Phase 8 — Polish — reminders (planned; see `docs/ARCHITECTURE.md` Phase 8)
+
+- **`mvn spring-boot:run` + exit 137:** Usually **SIGKILL** (killed process: `fuser`/port free, `kill -9`, **OOM**, or agent/CI timeout)—**not** an application compile failure if logs already show **Tomcat started on 8080**. **Fix:** start the backend again; if OOM, ease memory pressure or set `MAVEN_OPTS=-Xmx512m` (tune as needed).
+- **Gemini unavailable (HTTP 503):** Google’s Generative Language API sometimes returns **503 / `UNAVAILABLE`** (“high demand”). Backend surfaces **`ApiException.upstreamUnavailable`** with the error body. **Mitigation:** retry after a few minutes; change **`GEMINI_CHAT_MODEL`** if one model is overloaded; optional future work: client retries with backoff.
 
 ## Test count
 
-Backend: **`mvn test`** → **17** tests (includes **`AppointmentControllerTest`** slice).
+Backend: **`mvn test`** → **20** tests (includes **`AiControllerTest`**, **`AppointmentControllerTest`**).
 
-## Phase 5 — Appointments — features shipped
+## Phase 6 — AI Health Assistant — features shipped
 
 ### Backend
 
-- Migration **`V5__appointments.sql`**.
-- Package **`com.mediverse.appointment`** — `AppointmentController` **`/api/appointments`**, `AppointmentService` (booking horizon, pessimistic slot lock, duplicate booking rule, cancel window from `AppProperties`, status transitions; release slot on reject/cancel where applicable).
-- **`EmailService`** transactional templates incl. **`appointment-notify`** (booking, approval, rejection, completion, patient-cancel → doctor); sends after **`TransactionSynchronizationManager.afterCommit`** from service.
-- **`SlotGenerationService`** availability query fix: **`findByDoctorIdAndActiveTrueOrderByDayOfWeekAscStartTimeAsc`**.
-- **`DoctorService.dashboardStats`** wired to aggregates (no stubs).
-- **Bootstrap:** **`DotenvBootstrap`** + **`dotenv-java`** loads first **`.env`** walking up from CWD (`backend/` finds monorepo root); does not override existing env or `-D` props.
+- Migration **`V6__ai_chat.sql`**.
+- Package **`com.mediverse.ai`** — `GeminiChatRemoteClient` (Generative Language `generateContent`), `AiChatService`, `AiHealthTipService`, `AiController` **`/api/ai`**.
+- **`GeminiProperties`** via `@ConfigurationPropertiesScan` on `MediverseApplication`.
+- **`ApiException.upstreamUnavailable`** for Gemini/network failures.
 
-### Live backend endpoints (appointments)
+### Live backend endpoints (AI — Phase 6)
 
 | Method | Path | Role |
 |--------|------|------|
-| POST | `/api/appointments` | PATIENT — `{ slotId, reason? }` |
-| GET | `/api/appointments/me` | auth — role-aware list |
-| GET | `/api/appointments/{id}` | auth — participant detail |
-| PATCH | `/api/appointments/{id}/approve` | DOCTOR |
-| PATCH | `/api/appointments/{id}/reject` | DOCTOR |
-| PATCH | `/api/appointments/{id}/complete` | DOCTOR — `{ doctorNote? }` |
-| PATCH | `/api/appointments/{id}/cancel` | PATIENT |
+| POST | `/api/ai/chat/sessions` | PATIENT |
+| GET | `/api/ai/chat/sessions` | PATIENT |
+| GET | `/api/ai/chat/sessions/{id}/messages` | PATIENT |
+| POST | `/api/ai/chat/sessions/{id}/messages` | PATIENT |
+| GET | `/api/ai/health-tip` | PATIENT |
+
+_Report scanning routes under `/api/ai/reports*` are **Phase 7** — not implemented yet._
 
 ### Frontend
 
-- **`src/types/appointments.ts`**, **`src/lib/api/appointments.ts`**
-- **`/patient/doctors/[id]`** — pick date + optional reason → book slot; invalidates appointments/slots queries; clears mutation state when date changes
-- **`/patient/appointments`** — list; cancel when allowed
-- **`/doctor/appointments`** — approve/reject pending; complete (with optional note via prompt path)
-- **`RoleAppNav`** — Appointments entries for patient and doctor shells
+- **`src/types/ai.ts`**, **`src/lib/api/ai.ts`**
+- **`/patient/ai-assistant`** — chat UI + daily tip
+- **`RoleAppNav`** — “AI assistant”; patient dashboard links
 
 ---
 
-## Phase 4 — Doctor module (still current; stats enhanced in Phase 5)
+## Phase 5 — Appointments (reference)
 
-Backend + discovery endpoints unchanged except **`GET /api/doctors/me/dashboard/stats`** returning real numbers. See **`docs/ARCHITECTURE.md`** for full tables.
-
----
-
-## Phase 3 — Frontend foundation (reference)
-
-HTTP client, TanStack Query, Zustand auth, marketing + `(app)` route groups.
+Booking, lifecycle emails, dashboard stats — see **`docs/ARCHITECTURE.md`** for full appointment table.
 
 ---
 
 ## Source control
 
 - Remote: `git@github.com:RishabhAggarwal613/MediVerse.git` (SSH).
-- **Phase 4** milestone (historical): **`c6ee4bd`**.
-- **Phase 5 release:** **`6279143`** on **`main`**.
+- **Phase 5 release (historical):** **`6279143`** on **`main`**.

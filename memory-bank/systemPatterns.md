@@ -70,6 +70,7 @@ Domain code throws `ApiException(ErrorCode, message[, details])`.
 
 `@ConfigurationPropertiesScan` picks up:
 - `AppProperties` (`mediverse.cors`, `.admin`, `.appointment`, `.mail`).
+- **`GeminiProperties`** (`gemini.api-key`, `chat-model`, `vision-model`).
 - `JwtProperties` (`jwt.secret`, `.access-ttl-minutes`, `.refresh-ttl-days`,
   `.issuer`).
 
@@ -137,11 +138,11 @@ method to **strip** the bearer requirement on public endpoints.
 is private; clients fetch via short-lived presigned URLs (5–15 min). Layout:
 `profile-pics/{userId}/{uuid}.{ext}`, `reports/{patientId}/{uuid}.{ext}`.
 
-### 12. AI calls always go through one client (Phases 6 & 7)
+### 12. AI calls via one remote client (Phases 6 & 7)
 
-A single `GeminiClient` centralizes API key, timeouts, retries, and logging.
-Chat → `gemini-1.5-flash`. Vision → `gemini-1.5-pro`. Strict JSON parsing for
-report findings.
+`GeminiChatRemoteClient` wraps Generative Language `generateContent`; config is
+`GeminiProperties` (`gemini.api-key`, chat / vision models). Chat uses flash;
+Vision (Phase 7) will use `visionModel`.
 
 ### 13. Email via Spring Mail + Thymeleaf (Phases 2, 5, 8)
 

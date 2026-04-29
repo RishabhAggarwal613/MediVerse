@@ -3,24 +3,27 @@
 Update at phase boundaries or when pausing mid-phase. Answers: what happened,
 what's in progress, what's next.
 
-> Last updated: **Phase 5 complete** — **`6279143`** on **`origin/main`** (appointments + Google `.env` bootstrap).
+> Last updated: **2026-04-29** — Phase 6 AI stack live; Phase 8 **operational notes** captured (exit 137, Gemini 503). Next: **Phase 7** report scanning, then Phase 8 polish checklist in [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
 
 ## Current focus
 
-**Phase 6+** — AI chat, report scanning, and polish per [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
+**Phase 7+** — AI report scanning and polish per [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
+
+## What's next
+
+- **Phase 7** — AI report scanning (S3 + Gemini Vision, persistence, share flow) per architecture doc.
+- **Phase 8** — Polish items + optional retries/backoff for Gemini 503 (see `progress.md` reminders).
 
 ## Locked decisions (unchanged)
 
-See `progress.md`, `productContext.md`, and `systemPatterns.md`. Appointments API follows the published table in `docs/ARCHITECTURE.md`.
+See `progress.md`, `productContext.md`, and `systemPatterns.md`.
 
-## Phase 5 shipped (summary)
+## Phase 6 shipped (summary)
 
-- **Data:** Flyway `V5__appointments.sql` — appointments + status enum; one appointment per `time_slot_id`.
-- **Domain/API:** `com.mediverse.appointment` — book, list (`/me`), detail, approve/reject/complete/cancel; pessimistic slot lock; same-doctor **same-calendar-day** duplicate guard; patient cancel inside configured window.
-- **Email:** Sync `EmailService` methods + `templates/email/appointment-notify.html`; sends **after DB commit**.
-- **Doctor dashboard:** `/api/doctors/me/dashboard/stats` uses `AppointmentService.dashboardCounts` (today, rolling week by horizon, distinct patients served).
-- **Frontend:** Booking on `/patient/doctors/[id]`; `/patient/appointments` & `/doctor/appointments`; `RoleAppNav`; `unwrapApiErrorMessage` helper.
-- **OAuth dev UX:** `DotenvBootstrap` loads repo-root `.env` into JVM properties before Spring starts (`MediverseApplication`), so **`GOOGLE_CLIENT_*`** resolves without manual `export` when using `.env`; tests still blank OAuth via `application-test.yml`.
+- **Data:** Flyway `V6__ai_chat.sql` — `ai_chat_sessions`, `ai_chat_messages` (roles USER/ASSISTANT).
+- **Backend:** `com.mediverse.ai` — `GeminiChatRemoteClient`, `AiChatService`, **`AiHealthTipService`** (one tip per UTC day, in-memory cache), **`AiController`** under `/api/ai` (`/chat/sessions`, messages, **`/health-tip`**).
+- **Security:** All AI endpoints **PATIENT** via **`@PreAuthorize("hasRole('PATIENT')")`** (+ authenticated default for `/api/**`).
+- **Frontend:** `src/types/ai.ts`, `src/lib/api/ai.ts`, **`/patient/ai-assistant`** — sessions sidebar, transcript, daily tip panel; **`RoleAppNav`** + patient home links.
 
 ## How it runs locally
 
@@ -29,7 +32,7 @@ See `progress.md`, `productContext.md`, and `systemPatterns.md`. Appointments AP
 | MySQL `mediverse` | Host-installed (see `.env.example` / `memory-bank/techContext.md`) |
 | Backend | `cd backend && mvn spring-boot:run` → **http://localhost:8080** |
 | Frontend | `cd frontend && npm run dev` → **http://localhost:3000** |
-| SMTP (optional) | `docker compose up -d` (MailHog **:1025** / UI **:8025**) |
+| Gemini | Set **`GEMINI_API_KEY`** (+ **`GEMINI_CHAT_MODEL`**) in repo-root `.env` (loaded via `DotenvBootstrap`). If Google returns **503 UNAVAILABLE**, retry later or switch model—see **Phase 8** in **`docs/ARCHITECTURE.md`** / **`progress.md`**. |
 
 `GET /api/health` exposes `googleOAuthAvailable` when both Google client vars are wired.
 

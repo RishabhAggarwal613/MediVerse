@@ -10,6 +10,7 @@ const PATIENT_LINKS = [
   { href: "/patient", label: "Home" },
   { href: "/patient/doctors", label: "Find doctors" },
   { href: "/patient/appointments", label: "Appointments" },
+  { href: "/patient/ai-assistant", label: "AI assistant" },
 ];
 
 const DOCTOR_LINKS = [

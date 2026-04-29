@@ -17,12 +17,15 @@ export default function PatientHomePage() {
               Your dashboard
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Bookings, reports, and AI tools will land in later phases. You are
-              signed in.
+              Book care, explore the AI wellness assistant, and manage visits — you
+              are signed in.
             </p>
-            <div className="mt-6">
+            <div className="mt-6 flex flex-wrap gap-2">
               <Button asChild variant="outline" size="sm">
                 <Link href="/patient/doctors">Find doctors</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/patient/ai-assistant">AI assistant</Link>
               </Button>
             </div>
           </div>

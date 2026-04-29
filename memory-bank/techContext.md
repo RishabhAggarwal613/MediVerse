@@ -100,7 +100,7 @@ Highlights:
 - `JWT_SECRET` / `JWT_ACCESS_TTL_MINUTES` / `JWT_REFRESH_TTL_DAYS` — auth.
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — OAuth2 (Phase 2+).
 - `AWS_REGION` / `AWS_S3_BUCKET` / `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` — S3.
-- `GEMINI_API_KEY` / `GEMINI_CHAT_MODEL` / `GEMINI_VISION_MODEL` — AI.
+- `GEMINI_API_KEY` / `GEMINI_CHAT_MODEL` / `GEMINI_VISION_MODEL` — AI (defaults in `application.yml` are `gemini-2.5-flash` / `gemini-2.5-pro`; `.env` overrides—remove old `gemini-1.5-*` if migrating).
 - `MAIL_HOST` / `MAIL_PORT` / `MAIL_FROM` — Spring Mail.
 - `CORS_ALLOWED_ORIGINS` — comma-separated, binds to `List<String>`.
 - `ADMIN_EMAILS` — comma-separated allowlist for `/admin/verifications`.

@@ -50,4 +50,8 @@ public class ApiException extends RuntimeException {
     public static ApiException unauthorized(String message) {
         return new ApiException(ErrorCode.UNAUTHORIZED, message);
     }
+
+    public static ApiException upstreamUnavailable(String message) {
+        return new ApiException(ErrorCode.UPSTREAM_UNAVAILABLE, message);
+    }
 }

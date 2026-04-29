@@ -100,8 +100,10 @@ aws:
 
 gemini:
   api-key: ${GEMINI_API_KEY:}
-  chat-model: ${GEMINI_CHAT_MODEL:gemini-1.5-flash}
-  vision-model: ${GEMINI_VISION_MODEL:gemini-1.5-pro}
+  # Google AI Studio model ids change; if you get 404 from Gemini, list models:
+  #   GET https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY
+  chat-model: ${GEMINI_CHAT_MODEL:gemini-2.5-flash}
+  vision-model: ${GEMINI_VISION_MODEL:gemini-2.5-pro}
 
 # ---- Springdoc / Swagger UI ----
 springdoc:

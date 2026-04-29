@@ -56,7 +56,7 @@ The doctor configures *per availability block* whether slots are:
 | Migrations       | Flyway                                                                     |
 | Database         | MySQL 8                                                                    |
 | File storage     | AWS S3 (SDK v2)                                                            |
-| AI               | Google Gemini (`gemini-1.5-flash` for chat, `gemini-1.5-pro` for vision)   |
+| AI               | Google Gemini (defaults `gemini-2.5-flash` chat, `gemini-2.5-pro` vision; override via env)   |
 | Email            | Spring Mail (SMTP — Gmail app password for dev)                            |
 | API docs         | springdoc-openapi (Swagger UI)                                             |
 | Build            | Maven (backend), pnpm or npm (frontend)                                    |
@@ -554,12 +554,12 @@ frontend/
 ## 10. AI Integration (Gemini)
 
 - HTTP via Spring's `RestClient` to `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key=…`.
-- **Health Assistant** uses `gemini-1.5-flash` with a system prompt enforcing:
+- **Health Assistant** uses the configured chat model (default `gemini-2.5-flash`) with a system prompt enforcing:
   - "You are MediVerse Health Assistant…"
   - Always recommend consulting a doctor for diagnosis.
   - Refuse to prescribe medication.
   - Keep replies concise (markdown supported).
-- **Report Scanning** uses `gemini-1.5-pro` with multi-modal input (the uploaded file's bytes as `inline_data`).
+- **Report Scanning** uses the vision model (default `gemini-2.5-pro`) with multi-modal input (the uploaded file's bytes as `inline_data`).
   - Prompt asks for **strict JSON output**:
     ```
     { "summary": "...", "findings": [{label,value,unit,refRange,flag}], "recommendations": "..." }
@@ -636,8 +636,8 @@ aws:
 
 gemini:
   api-key: ${GEMINI_API_KEY}
-  chat-model: gemini-1.5-flash
-  vision-model: gemini-1.5-pro
+  chat-model: gemini-2.5-flash
+  vision-model: gemini-2.5-pro
 ```
 
 `frontend/.env.local`:
@@ -717,6 +717,8 @@ Each phase ends in a working, testable slice.
 - Validation messages, empty states, loading skeletons, error boundaries.
 - README with run instructions.
 - (Optional) Dockerfile for backend + frontend.
+- **Local dev ops (reminder):** If `mvn spring-boot:run` ends with **Maven BUILD FAILURE** and **exit code 137**, the JVM received **SIGKILL** (port teardown, `kill -9`, OOM killer, or tool timeout)—not a compile error if Tomcat had already started; restart the backend. Mitigate OOM with `MAVEN_OPTS` heap limits or less memory pressure.
+- **Gemini upstream:** Google may return **HTTP 503 `UNAVAILABLE`** (e.g. high demand). The API maps this to `upstreamUnavailable`; users should retry later or try another **`GEMINI_CHAT_MODEL`** in `.env`. Optional later: retries with backoff.
 
 ---
 
