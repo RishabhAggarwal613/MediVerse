@@ -3,7 +3,7 @@
 Update at phase boundaries or when pausing mid-phase. Answers: what happened,
 what's in progress, what's next.
 
-> Last updated: **Phase 5 complete** — appointments + Google `.env` bootstrap on `main`.
+> Last updated: **Phase 5 complete** — **`6279143`** on **`origin/main`** (appointments + Google `.env` bootstrap).
 
 ## Current focus
 

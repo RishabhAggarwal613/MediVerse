@@ -2,7 +2,7 @@
 
 Phase-by-phase status, working endpoints, and test counts.
 
-> Last updated: **Phase 5 complete** — committed to **`main`** and pushed to **`origin`** (see repo history for latest SHA).
+> Last updated: **Phase 5 complete** — pushed to **`origin/main`** as **`6279143`** (`feat(appointments): Phase 5 bookings, lifecycle emails, dashboard stats`).
 
 ## Phase status
 
@@ -69,4 +69,4 @@ HTTP client, TanStack Query, Zustand auth, marketing + `(app)` route groups.
 
 - Remote: `git@github.com:RishabhAggarwal613/MediVerse.git` (SSH).
 - **Phase 4** milestone (historical): **`c6ee4bd`**.
-- **Phase 5:** latest **`main`** (see **`git log -1`** on origin after pull).
+- **Phase 5 release:** **`6279143`** on **`main`**.
