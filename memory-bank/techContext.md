@@ -124,24 +124,37 @@ Frontend uses `NEXT_PUBLIC_API_BASE_URL` (`http://localhost:8080/api`) and
 
 ```
 com.mediverse
-├── MediverseApplication                   (@ConfigurationPropertiesScan)
-├── common/
-│   ├── api/                               envelope: ApiResponse, ApiError, ErrorCode, ApiException
-│   ├── config/
-│   │   ├── CorsConfig
-│   │   ├── OpenApiConfig
-│   │   ├── SecurityConfig
-│   │   └── properties/
-│   │       ├── AppProperties              (mediverse.*)
-│   │       └── JwtProperties              (jwt.*)
-│   ├── exception/GlobalExceptionHandler
+├── MediverseApplication                   (@SpringBootApplication, @ConfigurationPropertiesScan, @EnableAsync)
+├── auth/
+│   ├── controller/AuthController
+│   ├── service/AuthService
+│   ├── dto/
+│   ├── domain/ (RefreshToken, EmailVerificationToken, PasswordResetToken)
+│   ├── repository/
 │   └── security/
-│       ├── RestAuthenticationEntryPoint   (JSON 401)
-│       └── RestAccessDeniedHandler        (JSON 403)
-└── health/HealthController                (GET /api/health)
+│       ├── JwtService, JwtAuthenticationFilter, TokenHasher
+│       ├── CustomUserDetailsService, MediverseUserPrincipal
+├── user/
+│   ├── controller/UserController
+│   ├── service/UserService
+│   ├── dto/
+│   ├── domain/ (User, Patient, Doctor + enums)
+│   └── repository/
+├── email/ EmailService (+ Thymeleaf impl)
+├── storage/ StorageService (+ LocalFs / S3 adapters, LocalStorageWebConfig)
+├── common/ (api envelope, config incl. StorageProperties + AwsProperties,
+│            exception handler, security JSON handlers)
+└── health/HealthController
 ```
 
-Phase 2 will add `auth/`, `user/`, `email/`, `storage/` packages.
+## Test infrastructure (additions)
+
+- `HealthControllerTest`: `@WebMvcTest(HealthController)` + `@MockBean JwtAuthenticationFilter`
+  (avoids pulling `JwtService` into the slice), `@EnableConfigurationProperties(StorageProperties.class)`
+  (slice does not run full `@ConfigurationPropertiesScan`), `@ActiveProfiles("test")`.
+- `application-test.yml` now includes `mediverse.frontend` and `mediverse.storage` so
+  `AppProperties` / `StorageService` bind cleanly in `@SpringBootTest`.
+- `JwtServiceTest`: pure unit test (no Spring context) for sign/parse round-trip.
 
 ## Frontend route layout (current)
 

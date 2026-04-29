@@ -82,20 +82,37 @@ No `@Value` sprinkled across services.
 boundary once roles exist (Phase 2+). Beans wired ready: `BCryptPasswordEncoder`,
 `AuthenticationManager`, `@EnableMethodSecurity`.
 
-Public allowlist:
+Public allowlist (**explicit list** — `/api/auth/resend-verification` is **not**
+public; it requires `Authorization: Bearer`). When **Google OAuth credentials** are
+configured, a second `SecurityFilterChain` (order `0`, session `IF_REQUIRED`) owns
+only `/oauth2/**` and `/login/oauth2/**`; the main chain is `@Order(1)` with
+`SessionCreationPolicy.STATELESS` for `/api/**` and the rest.
 
 ```
-/api/health, /api/auth/**, /oauth2/**, /login/oauth2/**,
+/api/health, /api/health/**,
+/api/auth/register/patient, /api/auth/register/doctor,
+/api/auth/login, /api/auth/refresh, /api/auth/logout,
+/api/auth/verify-email, /api/auth/forgot-password, /api/auth/reset-password,
+/oauth2/**, /login/oauth2/**,
 /v3/api-docs, /v3/api-docs/**, /swagger-ui, /swagger-ui/**, /swagger-ui.html,
-/error
+/error, /uploads/**
 ```
 
-### 8. JWT auth (planned for Phase 2)
+### 8. JWT auth ✅ (Phase 2)
 
-- Access token (~15 min) sent in `Authorization` header.
-- Refresh token (~7 days) — rotation, persisted server-side.
-- One JWT filter pre-`UsernamePasswordAuthenticationFilter`.
-- `CustomUserDetailsService` maps `User` → `UserDetails` with the role authority.
+- Access token (~15 min, HS256, `jjwt`) — `sub` = user id, claims `email`, `role`.
+- Refresh token (~7 days, **opaque**, stored as **SHA-256 hash** only — plaintext once in API response).
+- **Rotation:** each refresh invalidates old row, mints new pair.
+- `JwtAuthenticationFilter` runs before `UsernamePasswordAuthenticationFilter`.
+- `CustomUserDetailsService` + `MediverseUserPrincipal` (`ROLE_PATIENT` / `ROLE_DOCTOR`).
+- **OAuth2 Google (Phase 2 Chunk 8)** — when **both** `GOOGLE_CLIENT_ID` and
+  `GOOGLE_CLIENT_SECRET` are set, `GoogleOAuthClientConfig` registers Google and
+  `GoogleOAuthSecurityConfig` redirects successful logins to
+  `{mediverse.frontend.baseUrl}/oauth/callback?token=…&refresh=…&expires_at=…`
+  (errors: `?error=<code>`).
+- **Auth controller tests** — `AuthControllerTest` slices with `@MockBean JwtAuthenticationFilter`;
+  `POST /api/auth/resend-verification` needs `AuthControllerResendVerificationIntegrationTest`
+  (`@SpringBootTest` + **`addFilters(true)`**) so `@AuthenticationPrincipal` resolves.
 
 ### 9. CORS from typed properties
 

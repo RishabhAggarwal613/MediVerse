@@ -19,6 +19,8 @@ spring:
 mediverse:
   cors:
     allowed-origins: http://localhost:3000
+  frontend:
+    base-url: http://localhost:3000
   admin:
     emails: admin@test.local
   appointment:
@@ -26,6 +28,11 @@ mediverse:
     cancel-window-hours: 2
   mail:
     from: noreply@test.local
+  storage:
+    provider: LOCAL
+    local:
+      base-dir: ${java.io.tmpdir}/mediverse-test-uploads
+      public-url-prefix: http://localhost:8080/uploads
 
 jwt:
   secret: test-only-secret-please-replace-with-a-strong-32+char-key

@@ -1,9 +1,8 @@
 # Progress
 
 Phase-by-phase status, working endpoints, and test counts.
-Update this at the end of each phase.
 
-> Last updated: end of Phase 1.
+> Last updated: Phase 2 backend complete — AuthController tests + pushed to `origin/main`.
 
 ## Phase status
 
@@ -11,119 +10,68 @@ Update this at the end of each phase.
 |-------|------|--------|
 | 0 | Workspace bootstrap | ✅ Done |
 | 1 | Backend foundation | ✅ Done |
-| 2 | Auth & Users | ⏳ Up next |
-| 3 | Frontend foundation + landing site + auth UI | 🟡 Partial — landing + role-picker shipped early |
-| 4 | Doctor module | ⏸ Pending |
-| 5 | Appointments | ⏸ Pending |
-| 6 | AI Health Assistant | ⏸ Pending |
-| 7 | AI Report Scanning | ⏸ Pending |
-| 8 | Polish | ⏸ Pending |
+| 2 | Auth & Users | ✅ Backend — Google OAuth JWT redirect wired (env-gated) |
+| 3 | Frontend foundation + landing + auth UI | 🟡 Partial — landing shipped; auth UI unwired |
+| 4–8 | Doctor / Appointments / AI / Polish | ⏸ Pending |
 
-## Phase 0 — Workspace bootstrap ✅
+## Phase 2 — Auth & Users ✅
 
-- Backend Spring Boot skeleton (`pom.xml` with all phase dependencies wired up
-  but unused).
-- Frontend `create-next-app` skeleton.
-- Host-installed MySQL `mediverse` DB + user.
-- `docker-compose.yml` with **MailHog** (MySQL is on host, not containerized).
-- `.env.example` + `.env`, `.gitignore`, root `README.md`.
-- `docs/ARCHITECTURE.md`, `docs/WORKFLOWS.md`.
+### Build chunks
 
-## Phase 1 — Backend foundation ✅
+| # | Chunk | Status |
+|---|-------|--------|
+| 1 | Migrations + entities + repositories | ✅ |
+| 2 | JWT pipeline | ✅ |
+| 3 | Storage (Local + S3) | ✅ |
+| 4 | Email + Thymeleaf | ✅ |
+| 5 | Auth controller (register / login / refresh / logout) | ✅ |
+| 6 | Verify + forgot/reset password | ✅ |
+| 7 | Users controller (`/me`, avatar, onboarding) | ✅ |
+| 8 | Google OAuth2 JWT + FE redirect | ✅ |
+| 9 | Tests incl. AuthController (`@WebMvcTest` + resend-verification `@SpringBootTest`) | ✅ |
+| 10 | Memory bank + commit Phase 2 | ✅ |
 
-### Sub-checklist
+### Live backend endpoints (`localhost:8080`)
 
-- [x] `@ConfigurationPropertiesScan` enabled
-- [x] `AppProperties` (binds `mediverse.*`)
-- [x] `JwtProperties` (binds `jwt.*`, ready for Phase 2)
-- [x] `ApiResponse<T>`, `ApiError`, `ErrorCode`, `ApiException`
-- [x] `GlobalExceptionHandler` covering 14 exception types
-- [x] `CorsConfig` (credentials-aware, no wildcard origins)
-- [x] `SecurityConfig` (stateless, public allowlist, BCrypt + AuthManager beans)
-- [x] `RestAuthenticationEntryPoint` + `RestAccessDeniedHandler` (JSON 401/403)
-- [x] `OpenApiConfig` with global `bearerAuth`
-- [x] `HealthController` at `GET /api/health`
-- [x] `application.yml` tightened: throw-on-no-handler, error attrs off
-- [x] H2 test profile (`application-test.yml`) + `MediverseApplicationTests`
-- [x] `HealthControllerTest` slice
-- [x] springdoc bumped 2.6.0 → 2.8.17 (Boot 3.5 compatibility)
-- [x] Live verified: 200 / 401 / CORS preflight / OpenAPI / Swagger UI
+| Method | Path | Auth | Notes |
+|--------|------|------|-------|
+| GET | `/api/health` | — | Envelope |
+| POST | `/api/auth/register/patient` | — | JSON body |
+| POST | `/api/auth/register/doctor` | — | multipart `data` + `license` |
+| POST | `/api/auth/login` | — | |
+| POST | `/api/auth/refresh` | — | body `refreshToken` |
+| POST | `/api/auth/logout` | — | body `refreshToken` |
+| POST | `/api/auth/verify-email` | — | body `token` |
+| POST | `/api/auth/resend-verification` | Bearer | |
+| POST | `/api/auth/forgot-password` | — | always 200 |
+| POST | `/api/auth/reset-password` | — | |
+| GET | `/api/users/me` | Bearer | |
+| PUT | `/api/users/me` | Bearer | JSON `fullName`, `phone` |
+| POST | `/api/users/me/avatar` | Bearer | multipart `file` |
+| GET | `/api/users/me/onboarding` | Bearer | checklist JSON |
+| GET | `/v3/api-docs`, `/swagger-ui.html` | — | |
+| GET | `/uploads/**` | — | **dev only** (local storage adapter) |
+| GET | `/oauth2/authorization/google` | — | Google login start — **requires** env `GOOGLE_CLIENT_*` |
+| GET | `/login/oauth2/code/google` | — | Spring callback |
 
-### Files added in Phase 1
+### Test count
 
-```
-backend/src/main/java/com/mediverse/
-  common/api/ApiError.java
-  common/api/ApiException.java
-  common/api/ApiResponse.java
-  common/api/ErrorCode.java
-  common/config/CorsConfig.java
-  common/config/OpenApiConfig.java
-  common/config/SecurityConfig.java
-  common/config/properties/AppProperties.java
-  common/config/properties/JwtProperties.java
-  common/exception/GlobalExceptionHandler.java
-  common/security/RestAccessDeniedHandler.java
-  common/security/RestAuthenticationEntryPoint.java
-  health/HealthController.java
-backend/src/test/java/com/mediverse/health/HealthControllerTest.java
-backend/src/test/resources/application-test.yml
-```
+| Suite | Tests | Notes |
+|-------|-------|-------|
+| `HealthControllerTest` | 1 | `@WebMvcTest` slice |
+| `MediverseApplicationTests` | 1 | `@SpringBootTest` + H2 |
+| `JwtServiceTest` | 1 | Pure unit |
+| `AuthServiceGoogleOAuthTest` | 4 | Mockito |
+| `AuthControllerTest` | 7 | Slice — register/login/forgot/logout/doctor multipart/verify/reset |
+| `AuthControllerResendVerificationIntegrationTest` | 1 | Full context — authenticated resend |
+| **Total** | **15** | `mvn test` green |
 
-(`MediverseApplication.java`, `pom.xml`, `application.yml`, and the existing
-smoke test were modified, not added.)
+## Phase 3 (partial) — Frontend
 
-## Phase 3 (partial) — Landing site, dark mode, polish 🟡
+Landing + role-picker exist; **not yet wired**: Axios client, refresh interceptor,
+Zustand, real forms → backend.
 
-Shipped early so the user could see the product:
+## Source control
 
-- 10 marketing sections: Hero, Trust strip, Features, How-it-works, For Doctors,
-  About, Testimonials, FAQ, CTA, Footer.
-- Sticky scroll-aware nav with mobile hamburger; emerald + vibrant-gradient
-  theme; glass-morphism cards.
-- `/login`, `/signup` (role picker), `/signup/patient`, `/signup/doctor`
-  placeholder pages.
-- Dark mode via `next-themes` with hydration-safe toggle.
-- Custom `Reveal` component (zero dep, `IntersectionObserver`-based) for scroll
-  animations.
-- Inline SVG illustrations: hero heartbeat line, doctor illustration, three
-  step illustrations.
-- SEO: `metadata` block on root layout + `sitemap.ts` + `robots.ts`.
-
-Still missing for Phase 3 (deferred):
-
-- Axios client + interceptors with single-flight refresh.
-- Zustand auth store.
-- TanStack Query + Theme providers wired in root layout.
-- Real auth pages wired to backend (need Phase 2 done first).
-- Public-page guards (redirect already-authed users to dashboard).
-- `(patient)` / `(doctor)` / `(admin)` route groups.
-- Role-aware redirect after login.
-
-## Live endpoints (current)
-
-| Method | Path | Status | Notes |
-|---|---|---|---|
-| GET | `/api/health` | 200 | Standard envelope |
-| GET | `/v3/api-docs` | 200 | OpenAPI 3.1 JSON |
-| GET | `/swagger-ui/index.html` | 200 | Swagger UI |
-| any | (anything else under `/api/*`) | 401 | JSON envelope, no HTML |
-| OPTIONS | (any) | 200 + CORS headers | from `http://localhost:3000` |
-
-## Test count
-
-| Suite | Tests | Status |
-|---|---|---|
-| `MediverseApplicationTests` (`@SpringBootTest` + H2) | 1 | ✅ |
-| `HealthControllerTest` (`@WebMvcTest`) | 1 | ✅ |
-| **Total** | **2** | **green** |
-
-## Known limitations / debt
-
-- `V1__placeholder.sql` is still a placeholder — to be replaced when Phase 2
-  schema lands.
-- No Testcontainers integration test against real MySQL yet (planned for
-  Phase 8 polish).
-- No CI pipeline configured yet (manual `mvn test` for now).
-- Spring devtools is on; in any future deployment build, exclude or scope
-  away.
+- Remote: `git@github.com:RishabhAggarwal613/MediVerse.git` (SSH).
+- Phase 2 backend: **merged to `origin/main`** (this session).

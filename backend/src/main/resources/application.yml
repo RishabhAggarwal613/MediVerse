@@ -72,6 +72,13 @@ mediverse:
   appointment:
     booking-horizon-days: ${APPT_BOOKING_HORIZON_DAYS:7}
     cancel-window-hours: ${APPT_CANCEL_WINDOW_HOURS:2}
+  storage:
+    provider: ${STORAGE_PROVIDER:LOCAL}
+    local:
+      base-dir: ${STORAGE_LOCAL_BASE_DIR:./uploads}
+      public-url-prefix: ${STORAGE_LOCAL_PUBLIC_URL:http://localhost:8080/uploads}
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
 
 jwt:
   secret: ${JWT_SECRET:dev-only-secret-please-replace-with-a-strong-32+char-key}

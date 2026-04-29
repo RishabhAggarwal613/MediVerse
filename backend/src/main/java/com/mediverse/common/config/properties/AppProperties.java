@@ -14,7 +14,8 @@ public record AppProperties(
         Cors cors,
         Admin admin,
         Appointment appointment,
-        Mail mail) {
+        Mail mail,
+        Frontend frontend) {
 
     public record Cors(List<String> allowedOrigins) {}
 
@@ -23,4 +24,10 @@ public record AppProperties(
     public record Appointment(int bookingHorizonDays, int cancelWindowHours) {}
 
     public record Mail(String from) {}
+
+    /**
+     * Used to build user-facing links inside emails (verify, reset, OAuth callback).
+     * Points at the frontend's origin, e.g. {@code http://localhost:3000}.
+     */
+    public record Frontend(String baseUrl) {}
 }

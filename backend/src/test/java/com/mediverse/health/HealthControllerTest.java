@@ -4,20 +4,32 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.mediverse.auth.security.JwtAuthenticationFilter;
+import com.mediverse.common.config.properties.StorageProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Verifies the {@code /api/health} endpoint returns the standard {@link
- * com.mediverse.common.api.ApiResponse} envelope. Security filters are disabled because the slice
- * test does not load the full security configuration.
+ * Slice test for {@link HealthController} only.
+ *
+ * <p>{@link JwtAuthenticationFilter} is mocked because it is globally registered via
+ * component-scan ({@link com.mediverse.MediverseApplication}) and pulls in {@code JwtService},
+ * {@code JwtProperties}, etc. — none of which are needed here.
  */
 @WebMvcTest(HealthController.class)
+@ActiveProfiles("test")
 @AutoConfigureMockMvc(addFilters = false)
+@EnableConfigurationProperties(StorageProperties.class)
 class HealthControllerTest {
+
+    @MockBean
+    JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
     MockMvc mockMvc;
