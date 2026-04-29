@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import {
   fetchDoctorPublic,
   fetchDoctorSlots,
 } from "@/lib/api/doctors";
+import { bookAppointment } from "@/lib/api/appointments";
+import { unwrapApiErrorMessage } from "@/lib/api/errors";
 import type { DoctorAvailabilityRuleDto } from "@/types/doctors";
 
 function padTime(isoLike: string) {
@@ -28,6 +30,7 @@ export default function PatientDoctorDetailPage() {
   const id = Number(params.id);
 
   const [date, setDate] = useState("");
+  const [reason, setReason] = useState("");
 
   useEffect(() => {
     setDate(new Date().toISOString().slice(0, 10));
@@ -51,6 +54,27 @@ export default function PatientDoctorDetailPage() {
     queryFn: () => fetchDoctorSlots(id, dateForSlots),
     enabled: Number.isFinite(id) && dateForSlots.length === 10,
   });
+
+  const queryClient = useQueryClient();
+
+  const bookMut = useMutation({
+    mutationFn: (slotId: number) =>
+      bookAppointment({
+        slotId,
+        reason: reason.trim() ? reason.trim().slice(0, 500) : undefined,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["doctor", id, "slots", dateForSlots],
+      });
+    },
+  });
+
+  /** Clear stale success/errors when browsing another day. */
+  useEffect(() => {
+    bookMut.reset();
+  }, [date, bookMut]);
 
   if (!Number.isFinite(id)) {
     return (
@@ -150,9 +174,10 @@ export default function PatientDoctorDetailPage() {
         </section>
 
         <section className="mt-10 rounded-2xl border border-dashed border-brand-200/70 bg-brand-50/40 p-6 dark:bg-brand-950/30">
-          <h2 className="text-lg font-semibold">Free slots preview</h2>
+          <h2 className="text-lg font-semibold">Book an appointment</h2>
           <p className="mt-2 text-xs text-muted-foreground">
-            Pick a date to see openings. Booking will unlock in Phase 5.
+            Choose a date and reserve a slot. Some doctors approve each request
+            before it is confirmed.
           </p>
           <div className="mt-4 max-w-xs space-y-2">
             <Label htmlFor="date">Date</Label>
@@ -163,13 +188,47 @@ export default function PatientDoctorDetailPage() {
               onChange={(e) => setDate(e.target.value)}
             />
           </div>
+          <div className="mt-6 max-w-md space-y-2">
+            <Label htmlFor="reason">Reason (optional)</Label>
+            <Input
+              id="reason"
+              placeholder="e.g. follow-up, symptoms"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+          {bookMut.isSuccess && (
+            <p className="mt-4 text-sm text-green-700 dark:text-green-400">
+              Booked.{" "}
+              <Link
+                href="/patient/appointments"
+                className="font-medium underline"
+              >
+                View your appointments
+              </Link>
+              .
+            </p>
+          )}
+          {bookMut.isError && (
+            <p className="mt-4 text-sm text-destructive">
+              {unwrapApiErrorMessage(bookMut.error)}
+            </p>
+          )}
           <ul className="mt-6 flex flex-wrap gap-2">
             {(slots ?? []).map((s) => (
               <li key={s.id}>
-                <span className="inline-flex rounded-full border border-border/70 bg-background px-3 py-1.5 text-xs">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="h-auto whitespace-normal px-3 py-2 text-left text-xs leading-snug"
+                  disabled={bookMut.isPending}
+                  onClick={() => bookMut.mutate(s.id)}
+                >
                   {padTime(s.startTime)} – {padTime(s.endTime)}
-                  {s.requiresApproval ? " • approval" : ""}
-                </span>
+                  {s.requiresApproval ? " • awaits approval" : " • confirmed"}
+                  {bookMut.isPending && bookMut.variables === s.id ? " …" : ""}
+                </Button>
               </li>
             ))}
           </ul>

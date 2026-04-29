@@ -118,11 +118,15 @@ See `docs/ARCHITECTURE.md` for the full design (DB schema, API surface, package 
 
 All env vars live in `.env` (which is **gitignored**). Use `.env.example` as a template.
 
-Backend variables are read in `backend/src/main/resources/application.yml` via `${VAR:default}` placeholders, so the app boots locally even with most values empty — only DB credentials are needed for Phase 0.
+Backend variables are read from `application.yml` via `${VAR:default}` placeholders. **The JVM does not read a `.env` file by itself** — this project calls `DotenvBootstrap` at startup to load the first `.env` found walking up from the working directory (so `mvn spring-boot:run` from `backend/` still picks up the **repo root** `.env`) into system properties for unset keys. OS environment variables and `-D` flags still win. Use `.env.example` as a template.
 
 ### Google sign-in (OAuth)
 
-The **Sign in with Google** button only works when the backend loads the OAuth2 client. That requires **both** of these to be non-empty (e.g. in your root `.env`, which you export or pass when starting Spring Boot):
+The **Sign in with Google** button only works when the backend loads the OAuth2 client — `GET /api/health` returns `data.googleOAuthAvailable: true` when both secrets are wired. Configure **either**:
+
+1. **`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`** in repo-root `.env` (recommended locally), **or**
+2. **Export** them in the shell / IDE Run Configuration before starting the API **or**
+3. **Pass `-DGOOGLE_CLIENT_ID=...`** on the command line.
 
 | Variable | Purpose |
 |----------|---------|

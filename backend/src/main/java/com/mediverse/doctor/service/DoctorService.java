@@ -17,6 +17,7 @@ import com.mediverse.doctor.dto.UpdateDoctorProfileRequest;
 import com.mediverse.doctor.dto.UpsertAvailabilityRequest;
 import com.mediverse.doctor.repository.DoctorAvailabilityRepository;
 import com.mediverse.doctor.repository.TimeSlotRepository;
+import com.mediverse.appointment.service.AppointmentService;
 import com.mediverse.storage.StorageService;
 import com.mediverse.user.domain.Doctor;
 import com.mediverse.user.domain.Role;
@@ -44,6 +45,7 @@ public class DoctorService {
     private final TimeSlotRepository timeSlotRepository;
     private final SlotGenerationService slotGenerationService;
     private final StorageService storageService;
+    private final AppointmentService appointmentService;
 
     public List<SpecializationOptionDto> listSpecializationOptions() {
         return Arrays.stream(MedicalSpecialization.values())
@@ -208,8 +210,10 @@ public class DoctorService {
 
     @Transactional(readOnly = true)
     public DoctorDashboardStatsDto dashboardStats(User user) {
-        doctorFor(user); // validates role binds a doctor row
-        return new DoctorDashboardStatsDto(0, 0, 0);
+        Doctor d = doctorFor(user);
+        var counts = appointmentService.dashboardCounts(d.getId(), LocalDate.now());
+        return new DoctorDashboardStatsDto(
+                counts.appointmentsToday(), counts.weekRolling(), counts.totalPatientsBooked());
     }
 
     private Doctor doctorFor(User user) {

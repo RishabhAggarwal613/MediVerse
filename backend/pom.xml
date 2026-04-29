@@ -114,6 +114,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Load repo-root .env into system properties before Spring resolves application.yml -->
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+
         <!-- Dev tools -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

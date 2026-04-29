@@ -9,12 +9,14 @@ import { cn } from "@/lib/utils";
 const PATIENT_LINKS = [
   { href: "/patient", label: "Home" },
   { href: "/patient/doctors", label: "Find doctors" },
+  { href: "/patient/appointments", label: "Appointments" },
 ];
 
 const DOCTOR_LINKS = [
   { href: "/doctor", label: "Home" },
   { href: "/doctor/profile", label: "Profile" },
   { href: "/doctor/availability", label: "Availability" },
+  { href: "/doctor/appointments", label: "Appointments" },
 ];
 
 export function RoleAppNav({ variant }: { variant: "patient" | "doctor" }) {

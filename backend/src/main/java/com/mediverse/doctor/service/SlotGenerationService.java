@@ -42,7 +42,7 @@ public class SlotGenerationService {
         Doctor doctor =
                 doctorRepository.findById(doctorId).orElseThrow(() -> new IllegalStateException("doctor"));
         Collection<DoctorAvailability> rules =
-                availabilityRepository.findByDoctor_IdAndActiveTrueOrderByDayOfWeekAscStartTimeAsc(
+                availabilityRepository.findByDoctorIdAndActiveTrueOrderByDayOfWeekAscStartTimeAsc(
                         doctorId);
 
         List<TimeSlot> batch = new ArrayList<>();

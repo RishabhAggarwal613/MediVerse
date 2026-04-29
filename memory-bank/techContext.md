@@ -89,11 +89,10 @@ npm run dev                     # → http://localhost:3000
 | MailHog UI | 8025 | http://localhost:8025 |
 | LiveReload (devtools) | 35729 | (auto) |
 
-## Env vars (loaded from `.env`)
+## Env vars (`application.yml` + optional repo `.env`)
 
-Authoritative list: see `.env.example` at repo root. The backend reads them
-via `${VAR:default}` placeholders in `application.yml`, so the app boots
-locally even with most values empty — only DB credentials are required.
+Authoritative template: `.env.example` at repo root. **`application.yml`** uses `${VAR:default}`
+placeholders — **JDK does not load `.env` files**. MediVerse calls `DotenvBootstrap` at JVM startup so a **repo-root** `.env` is applied when unset keys appear (working directory may be **`backend/`**; the locator walks upward). Exported OS env vars and `-D{var}` remain authoritative over `.env`.
 
 Highlights:
 

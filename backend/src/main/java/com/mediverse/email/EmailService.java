@@ -24,4 +24,20 @@ public interface EmailService {
     void sendDoctorVerified(String to, String fullName);
 
     void sendDoctorRejected(String to, String fullName, String reason);
+
+    /** Appointment lifecycle emails sent synchronously (after commit), not {@code @Async}. */
+    void sendAppointmentBookingPatient(
+            String to, String patientName, String doctorName, String when, String intakeStatusPhrase);
+
+    void sendAppointmentBookingDoctor(
+            String to, String doctorName, String patientName, String when, String intakeStatusPhrase);
+
+    void sendAppointmentApprovedPatient(String to, String patientName, String doctorName, String when);
+
+    void sendAppointmentRejectedPatient(String to, String patientName, String doctorName, String when);
+
+    void sendAppointmentCompletedPatient(
+            String to, String patientName, String doctorName, String when, String doctorNoteSnippet);
+
+    void sendAppointmentCancelledDoctor(String to, String doctorName, String patientName, String when);
 }

@@ -3,46 +3,35 @@
 Update at phase boundaries or when pausing mid-phase. Answers: what happened,
 what's in progress, what's next.
 
-> Last updated: **Phase 4 pushed** — **`c6ee4bd`** on **`main`**.
+> Last updated: **Phase 5 complete** — appointments + Google `.env` bootstrap on `main`.
 
 ## Current focus
 
-**Phase 5 — Appointments** — booking from free slots, doctor request handling, per
-`docs/ARCHITECTURE.md`.
+**Phase 6+** — AI chat, report scanning, and polish per [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
 
 ## Locked decisions (unchanged)
 
-See `progress.md` and `systemPatterns.md`.
+See `progress.md`, `productContext.md`, and `systemPatterns.md`. Appointments API follows the published table in `docs/ARCHITECTURE.md`.
 
-## Phase 4 snapshot (complete)
+## Phase 5 shipped (summary)
 
-- **DB:** `V4__doctor_availability_and_slots.sql` — `doctor_availability`, `time_slots`.
-- **Backend:** `DoctorService`, `SlotGenerationService`, `DoctorController` — search, public
-  profile, `/me` profile + availability CRUD, regenerate slots, dashboard stats stub;
-  `GET /api/doctors/specializations`, `GET /api/doctors`, `/{id}`, `/{id}/availability`,
-  `/{id}/slots?date=`.
-- **Frontend:** `src/lib/api/doctors.ts`; patient `/patient/doctors` (+ detail); doctor
-  `/doctor/profile`, `/doctor/availability`; `RoleAppNav` for patient/doctor shells.
-- **Tests:** `@WebMvcTest(DoctorControllerTest)` — `specializations` slice (needs
-  `@EnableConfigurationProperties(StorageProperties.class)` like other MVC tests).
+- **Data:** Flyway `V5__appointments.sql` — appointments + status enum; one appointment per `time_slot_id`.
+- **Domain/API:** `com.mediverse.appointment` — book, list (`/me`), detail, approve/reject/complete/cancel; pessimistic slot lock; same-doctor **same-calendar-day** duplicate guard; patient cancel inside configured window.
+- **Email:** Sync `EmailService` methods + `templates/email/appointment-notify.html`; sends **after DB commit**.
+- **Doctor dashboard:** `/api/doctors/me/dashboard/stats` uses `AppointmentService.dashboardCounts` (today, rolling week by horizon, distinct patients served).
+- **Frontend:** Booking on `/patient/doctors/[id]`; `/patient/appointments` & `/doctor/appointments`; `RoleAppNav`; `unwrapApiErrorMessage` helper.
+- **OAuth dev UX:** `DotenvBootstrap` loads repo-root `.env` into JVM properties before Spring starts (`MediverseApplication`), so **`GOOGLE_CLIENT_*`** resolves without manual `export` when using `.env`; tests still blank OAuth via `application-test.yml`.
 
-## Decisions made this phase
+## How it runs locally
 
-- Slot regeneration: 14-day horizon from active weekly rules; unbooked slots replaced on
-  regenerate.
-- Public doctor search: verified + approval `APPROVED` only (`DoctorRepository.searchVisible`).
-- Booking from UI deferred to Phase 5 (slots preview only on patient detail).
+| Piece | Command / URL |
+|-------|----------------|
+| MySQL `mediverse` | Host-installed (see `.env.example` / `memory-bank/techContext.md`) |
+| Backend | `cd backend && mvn spring-boot:run` → **http://localhost:8080** |
+| Frontend | `cd frontend && npm run dev` → **http://localhost:3000** |
+| SMTP (optional) | `docker compose up -d` (MailHog **:1025** / UI **:8025**) |
 
-## What's next
-
-1. **Phase 5** — appointment entities, book/cancel APIs, doctor inbox, confirmation emails.
-2. Optional: wire `/doctor` home to real dashboard stats when Phase 5 data exists.
-
-## Recent fix (Phase 4 closure)
-
-- **`SecurityConfig`:** Unauthenticated `GET` access for doctor discovery (`/api/doctors`,
-  specializations, `{id}`, `{id}/availability`, `{id}/slots`). `/api/doctors/me/**` stays
-  authenticated (listed first so `me` is not a public `{id}`).
+`GET /api/health` exposes `googleOAuthAvailable` when both Google client vars are wired.
 
 ## Quick verify
 

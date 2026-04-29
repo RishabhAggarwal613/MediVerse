@@ -85,6 +85,96 @@ public class EmailServiceImpl implements EmailService {
         send(to, "MediVerse doctor verification update", "email/doctor-rejected", vars);
     }
 
+    @Override
+    public void sendAppointmentBookingPatient(
+            String to,
+            String patientName,
+            String doctorName,
+            String when,
+            String intakeStatusPhrase) {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("title", "Booking received");
+        vars.put(
+                "line1",
+                "Hi " + patientName + ", your booking with Dr. " + doctorName + " (" + when + "). Status: " + intakeStatusPhrase + ".");
+        vars.put(
+                "line2",
+                intakeStatusPhrase.contains("PENDING")
+                        ? "Your doctor will confirm this visit shortly."
+                        : "Your slot is confirmed.");
+        sendSync(to, "[MediVerse] Appointment booked", "email/appointment-notify", vars);
+    }
+
+    @Override
+    public void sendAppointmentBookingDoctor(
+            String to, String doctorName, String patientName, String when, String intakeStatusPhrase) {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("title", "New booking");
+        vars.put(
+                "line1",
+                "Hi Dr. "
+                        + doctorName
+                        + ", "
+                        + patientName
+                        + " booked an appointment on "
+                        + when
+                        + ". Intake: "
+                        + intakeStatusPhrase
+                        + ".");
+        vars.put("line2", "Review pending requests in MediVerse.");
+        sendSync(to, "[MediVerse] New patient booking", "email/appointment-notify", vars);
+    }
+
+    @Override
+    public void sendAppointmentApprovedPatient(String to, String patientName, String doctorName, String when) {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("title", "Appointment confirmed");
+        vars.put(
+                "line1",
+                "Hi " + patientName + ", Dr. " + doctorName + " confirmed your visit on " + when + ".");
+        vars.put("line2", null);
+        sendSync(to, "[MediVerse] Appointment confirmed", "email/appointment-notify", vars);
+    }
+
+    @Override
+    public void sendAppointmentRejectedPatient(String to, String patientName, String doctorName, String when) {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("title", "Appointment update");
+        vars.put(
+                "line1",
+                "Hi " + patientName + ", Dr. " + doctorName + " could not approve the request for " + when + ". Pick another slot anytime.");
+        vars.put("line2", null);
+        sendSync(to, "[MediVerse] Appointment not approved", "email/appointment-notify", vars);
+    }
+
+    @Override
+    public void sendAppointmentCompletedPatient(
+            String to, String patientName, String doctorName, String when, String doctorNoteSnippet) {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("title", "Visit completed");
+        vars.put(
+                "line1",
+                "Hi " + patientName + ", your appointment with Dr. " + doctorName + " on " + when + " is marked complete.");
+        vars.put("line2", doctorNoteSnippet.isBlank() ? null : "Doctor note: " + doctorNoteSnippet);
+        sendSync(to, "[MediVerse] Appointment completed", "email/appointment-notify", vars);
+    }
+
+    @Override
+    public void sendAppointmentCancelledDoctor(String to, String doctorName, String patientName, String when) {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("title", "Cancellation");
+        vars.put(
+                "line1",
+                "Hi Dr. " + doctorName + ", " + patientName + " cancelled their appointment on " + when + ".");
+        vars.put("line2", null);
+        sendSync(to, "[MediVerse] Appointment cancelled", "email/appointment-notify", vars);
+    }
+
+    /** Synchronous send (no {@code @Async}). */
+    private void sendSync(String to, String subject, String template, Map<String, Object> vars) {
+        send(to, subject, template, vars);
+    }
+
     private void send(String to, String subject, String template, Map<String, Object> vars) {
         try {
             Context ctx = new Context();
