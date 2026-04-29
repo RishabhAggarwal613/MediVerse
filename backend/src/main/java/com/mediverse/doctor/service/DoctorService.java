@@ -26,8 +26,14 @@ import com.mediverse.user.domain.VerificationStatus;
 import com.mediverse.user.repository.DoctorRepository;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -65,14 +71,28 @@ public class DoctorService {
                                 Math.min(Math.max(size, 1), 50),
                                 Sort.by(Sort.Direction.ASC, "id")));
 
-        Page<DoctorSummaryDto> mapped = p.map(this::toSummary);
+        List<Doctor> docs = p.getContent();
+        Map<Long, List<DoctorAvailability>> byDoctor = Collections.emptyMap();
+        if (!docs.isEmpty()) {
+            List<Long> ids =
+                    docs.stream().map(Doctor::getId).toList();
+            List<DoctorAvailability> batch = availabilityRepository.findActiveFetchedByDoctorIdIn(ids);
+            byDoctor = batch.stream().collect(Collectors.groupingBy(da -> da.getDoctor().getId()));
+        }
+
+        Map<Long, List<DoctorAvailability>> rulesByDoctorId = byDoctor;
+        List<DoctorSummaryDto> summaries = new ArrayList<>();
+        for (Doctor doc : docs) {
+            summaries.add(toSummary(doc, rulesByDoctorId.getOrDefault(doc.getId(), List.of())));
+        }
+
         return new PageResponse<>(
-                mapped.getContent(),
-                mapped.getNumber(),
-                mapped.getSize(),
-                mapped.getTotalElements(),
-                mapped.getTotalPages(),
-                mapped.isLast());
+                summaries,
+                p.getNumber(),
+                p.getSize(),
+                p.getTotalElements(),
+                p.getTotalPages(),
+                p.isLast());
     }
 
     @Transactional(readOnly = true)
@@ -111,6 +131,14 @@ public class DoctorService {
         if (req.bio() != null) {
             String bio = req.bio().trim();
             d.setBio(bio.isBlank() ? null : bio);
+        }
+        if (req.practiceCity() != null) {
+            String pc = req.practiceCity().trim();
+            d.setPracticeCity(pc.isBlank() ? null : pc);
+        }
+        if (req.languages() != null) {
+            String langs = req.languages().trim();
+            d.setLanguages(langs.isBlank() ? null : langs);
         }
 
         doctorRepository.save(d);
@@ -196,12 +224,18 @@ public class DoctorService {
         slotGenerationService.regenerateSlotsForDoctor(d.getId());
     }
 
-    @Transactional(readOnly = true)
+    /**
+     * Materializes slots for the rolling horizon when patients browse, so we do not rely only on
+     * the doctor's last availability save (which drifts after {@link SlotGenerationService#HORIZON_DAYS}).
+     */
+    @Transactional
     public List<TimeSlotItemDto> listFreeSlots(Long doctorId, LocalDate date) {
         Doctor d = doctorRepository.findById(doctorId).orElseThrow(() -> ApiException.notFound("Doctor not found"));
         if (!(d.isVerified() && d.getVerificationStatus() == VerificationStatus.APPROVED)) {
             throw ApiException.notFound("Doctor not found");
         }
+
+        slotGenerationService.regenerateSlotsForDoctor(doctorId);
 
         List<TimeSlot> slots =
                 timeSlotRepository.findByDoctor_IdAndSlotDateAndBookedFalseOrderByStartTimeAsc(doctorId, date);
@@ -245,7 +279,7 @@ public class DoctorService {
                 slot.isRequiresApproval());
     }
 
-    private DoctorSummaryDto toSummary(Doctor doctor) {
+    private DoctorSummaryDto toSummary(Doctor doctor, List<DoctorAvailability> activeRulesForDoctor) {
         User u = doctor.getUser();
         String picUrl =
                 u.getProfilePicUrl() == null || u.getProfilePicUrl().isBlank()
@@ -256,7 +290,34 @@ public class DoctorService {
                 u.getFullName(),
                 doctor.getSpecialization(),
                 doctor.getConsultationFee(),
-                picUrl);
+                picUrl,
+                formatWeeklyAvailabilitySummary(activeRulesForDoctor));
+    }
+
+    /** Human-readable condensed availability for browse cards (distinct from persisted slot instances). */
+    private static String formatWeeklyAvailabilitySummary(List<DoctorAvailability> rules) {
+        if (rules == null || rules.isEmpty()) {
+            return "Weekly schedule not configured";
+        }
+        DateTimeFormatter clock = DateTimeFormatter.ofPattern("HH:mm");
+        StringBuilder sb = new StringBuilder();
+        for (DoctorAvailability r : rules) {
+            if (sb.length() > 0) {
+                sb.append(" · ");
+            }
+            String day =
+                    r.getDayOfWeek().toDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+            sb.append(day)
+                    .append(' ')
+                    .append(clock.format(r.getStartTime()))
+                    .append('–')
+                    .append(clock.format(r.getEndTime()));
+        }
+        String out = sb.toString();
+        if (out.length() > 200) {
+            return out.substring(0, Math.min(out.length(), 197)) + "...";
+        }
+        return out;
     }
 
     private DoctorPublicDto toPublicDto(Doctor d) {
@@ -272,6 +333,8 @@ public class DoctorService {
                 d.getYearsExperience(),
                 d.getConsultationFee(),
                 d.getBio(),
+                d.getPracticeCity(),
+                d.getLanguages(),
                 d.isVerified());
     }
 

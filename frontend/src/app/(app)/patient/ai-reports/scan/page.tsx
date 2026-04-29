@@ -5,6 +5,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 
+import { AppPageShell } from "@/components/app/app-page-shell";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { unwrapApiErrorMessage } from "@/lib/api/errors";
@@ -36,7 +37,8 @@ export default function PatientAiReportsScanPage() {
   const errMsg = mut.error ? unwrapApiErrorMessage(mut.error) : null;
 
   return (
-    <Container className="py-12">
+    <AppPageShell variant="patient">
+      <Container className="relative z-[1] py-12">
       <div className="mx-auto max-w-xl space-y-8">
         <Link
           href="/patient/ai-reports"
@@ -95,5 +97,6 @@ export default function PatientAiReportsScanPage() {
         </div>
       </div>
     </Container>
+    </AppPageShell>
   );
 }

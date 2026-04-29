@@ -50,7 +50,7 @@ class AuthControllerTest {
 
     @Test
     void registerPatient_returnsCreatedWithEnvelope() throws Exception {
-        UserDto userDto = new UserDto(1L, "pat@example.com", "Pat", Role.PATIENT, false, null);
+        UserDto userDto = new UserDto(1L, "pat@example.com", "Pat", Role.PATIENT, false, null, null, null);
         AuthResponse auth =
                 AuthResponse.of(
                         "access",
@@ -80,7 +80,7 @@ class AuthControllerTest {
 
     @Test
     void login_returnsOkWithEnvelope() throws Exception {
-        UserDto userDto = new UserDto(1L, "u@example.com", "U", Role.PATIENT, true, null);
+        UserDto userDto = new UserDto(1L, "u@example.com", "U", Role.PATIENT, true, null, null, null);
         AuthResponse auth =
                 AuthResponse.of(
                         "a",
@@ -126,7 +126,7 @@ class AuthControllerTest {
     @Test
     void registerDoctor_multipart_returnsCreated() throws Exception {
         UserDto userDto =
-                new UserDto(2L, "doc@example.com", "Doc", Role.DOCTOR, false, null);
+                new UserDto(2L, "doc@example.com", "Doc", Role.DOCTOR, false, null, null, null);
         AuthResponse auth =
                 AuthResponse.of(
                         "da",

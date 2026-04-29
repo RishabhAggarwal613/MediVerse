@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
+import { AppPageShell } from "@/components/app/app-page-shell";
 import { Container } from "@/components/ui/container";
 import { fetchAiReport } from "@/lib/api/reports";
 import { unwrapApiErrorMessage } from "@/lib/api/errors";
@@ -40,11 +41,12 @@ export default function DoctorSharedReportDetailPage() {
   const err = q.error ? unwrapApiErrorMessage(q.error) : null;
 
   return (
-    <Container className="py-10">
+    <AppPageShell variant="doctor">
+      <Container className="relative z-[1] py-10">
       <div className="mx-auto max-w-3xl space-y-8">
         <Link
           href="/doctor"
-          className="text-sm font-medium text-muted-foreground hover:text-brand-700"
+          className="text-sm font-medium text-muted-foreground hover:text-teal-700 dark:hover:text-teal-300"
         >
           ← Doctor home
         </Link>
@@ -74,14 +76,14 @@ export default function DoctorSharedReportDetailPage() {
                   href={data.fileDownloadUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-sm font-medium text-brand-700 underline-offset-4 hover:underline dark:text-brand-300"
+                  className="text-sm font-medium text-teal-800 underline-offset-4 hover:underline dark:text-teal-300"
                 >
                   Download original attachment
                 </a>
               </p>
             ) : null}
 
-            <section className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04]">
+            <section className="surface-app p-6 shadow-md">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Summary
               </h2>
@@ -89,7 +91,7 @@ export default function DoctorSharedReportDetailPage() {
             </section>
 
             {data.keyFindings.length > 0 && (
-              <section className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04]">
+              <section className="surface-app p-6 shadow-md">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                   Key findings
                 </h2>
@@ -115,7 +117,7 @@ export default function DoctorSharedReportDetailPage() {
               </section>
             )}
 
-            <section className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04]">
+            <section className="surface-app p-6 shadow-md">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Recommendations
               </h2>
@@ -132,5 +134,6 @@ export default function DoctorSharedReportDetailPage() {
         )}
       </div>
     </Container>
+    </AppPageShell>
   );
 }

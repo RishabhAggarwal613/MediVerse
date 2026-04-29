@@ -45,6 +45,7 @@ tooling or dependencies change.
 - **MySQL 8.0.45** — host-installed, NOT containerized.
 - Database: `mediverse`, charset `utf8mb4`, collation `utf8mb4_unicode_ci`.
 - User: `mediverse@localhost`, password `mediversepass` (dev only).
+- **Flyway (dev, host MySQL):** through **`V8__doctor_practice_fields.sql`** — nullable **`doctors.practice_city`** and **`doctors.languages`**. Applied on backend startup when the DB is reachable.
 
 ## Local setup
 

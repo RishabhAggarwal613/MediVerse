@@ -1,7 +1,7 @@
 import { fromAxios, fromAxiosVoid } from "@/lib/api/unpack";
 import { api } from "@/lib/api/client";
 
-import type { AuthResponsePayload, UserDto } from "@/types/api";
+import type { AuthResponsePayload, Gender, UserDto } from "@/types/api";
 import type { DecimalString } from "./types";
 
 /** JSON part of doctor signup (paired with multipart `license` file). */
@@ -81,4 +81,23 @@ export function resetPasswordPost(token: string, newPassword: string) {
 /** Current user (Bearer). */
 export function fetchCurrentUser(): Promise<UserDto> {
   return fromAxios<UserDto>(() => api.get("/users/me"));
+}
+
+/** Matches backend `UpdateMeRequest` — only `fullName` is required. */
+export function updateAccountProfile(payload: {
+  fullName: string;
+  phone?: string | null;
+  dateOfBirth?: string | null;
+  gender?: Gender | null;
+  bloodGroup?: string | null;
+  allergies?: string | null;
+  emergencyContact?: string | null;
+}): Promise<UserDto> {
+  return fromAxios<UserDto>(() => api.put("/users/me", payload));
+}
+
+export function uploadAccountAvatar(file: File): Promise<UserDto> {
+  const fd = new FormData();
+  fd.append("file", file);
+  return fromAxios<UserDto>(() => api.post("/users/me/avatar", fd));
 }

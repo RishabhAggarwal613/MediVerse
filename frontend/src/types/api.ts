@@ -36,6 +36,17 @@ export interface ApiResponse<T> {
 
 export type Role = "PATIENT" | "DOCTOR";
 
+export type Gender = "MALE" | "FEMALE" | "OTHER";
+
+/** Patient clinical extras (only on PATIENT accounts with a patient row). */
+export interface PatientProfileDto {
+  dateOfBirth: string | null;
+  gender: Gender | null;
+  bloodGroup: string | null;
+  allergies: string | null;
+  emergencyContact: string | null;
+}
+
 /** Auth user shape from `/api/auth/*` responses. */
 export interface UserDto {
   id: number;
@@ -44,6 +55,8 @@ export interface UserDto {
   role: Role;
   emailVerified: boolean;
   profilePictureUrl: string | null;
+  phone: string | null;
+  patientProfile: PatientProfileDto | null;
 }
 
 export interface AuthResponsePayload {

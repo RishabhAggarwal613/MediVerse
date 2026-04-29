@@ -3,15 +3,15 @@
 Update at phase boundaries or when pausing mid-phase. Answers: what happened,
 what's in progress, what's next.
 
-> Last updated: **2026-04-29** — **Phase 7 shipped:** AI lab report scans (Gemini Vision, `ai_reports`, S3/local storage, patient pages + doctor shared-report reader). **`GEMINI_API_KEY`** + **`GEMINI_VISION_MODEL`** required for scan. Next: **Phase 8 polish** per [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
+> Last updated: **2026-04-29** — **Phase 7** (AI reports) + **Phase 8 partial** (**`V8`**, profiles, find-doctors availability, theme shell). Next: remaining **Phase 8** items in **`docs/ARCHITECTURE.md`**.
 
 ## Current focus
 
-**Phase 8 polish** — doctor dashboard onboarding, `/admin/verifications` polish, Dockerfile (optional), error/retry tweaks for Gemini 503 backlog.
+**Phase 8 polish** — remainder per **`docs/ARCHITECTURE.md`** (onboarding checklist, admin UX, Dockerfile optional). **Shipped in this batch:** **`V8`** doctor practice fields; patient/doctor profile expansion; find-doctors real weekly availability on cards + dual-theme search; app shell + theme plumbing (see **`progress.md`** Phase 8 snapshot).
 
 ## What's next
 
-- **Phase 8** — items listed in **`docs/ARCHITECTURE.md`** Phase 8 (stats, onboarding checklist, validation copy, skeletons).
+- Finish **Phase 8** checklist in **`docs/ARCHITECTURE.md`** (remaining polish items).
 - Optional: **automatic retries/backoff** for Gemini 503 (`progress.md` Phase 8 reminders).
 
 ## Locked decisions (unchanged)

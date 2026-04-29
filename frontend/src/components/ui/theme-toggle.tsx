@@ -6,7 +6,16 @@ import { useTheme } from "next-themes";
 
 import { cn } from "@/lib/utils";
 
-export function ThemeToggle({ className }: { className?: string }) {
+type ThemeAccent = "brand" | "teal";
+
+export function ThemeToggle({
+  className,
+  accent = "brand",
+}: {
+  className?: string;
+  /** Patient / marketing: brand emerald; doctor app: teal accents. */
+  accent?: ThemeAccent;
+}) {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
@@ -15,6 +24,11 @@ export function ThemeToggle({ className }: { className?: string }) {
   const current = (theme === "system" ? resolvedTheme : theme) ?? "light";
   const next = current === "dark" ? "light" : "dark";
 
+  const accentRing =
+    accent === "teal"
+      ? "hover:border-teal-400/70 hover:text-teal-800 focus-visible:ring-teal-500/40 dark:hover:text-teal-200"
+      : "hover:border-brand-300 hover:text-brand-700 focus-visible:ring-brand-500/35 dark:hover:text-brand-300";
+
   return (
     <button
       type="button"
@@ -22,7 +36,8 @@ export function ThemeToggle({ className }: { className?: string }) {
       title={mounted ? `Switch to ${next} mode` : "Toggle theme"}
       onClick={() => setTheme(next)}
       className={cn(
-        "relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-white/70 text-foreground/80 backdrop-blur-md transition-all hover:border-brand-300 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:bg-white/5",
+        "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-white/70 text-foreground/80 backdrop-blur-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:bg-white/5",
+        accentRing,
         className
       )}
     >

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
+import { NEXT_THEMES_HEAD_INIT } from "@/app/theme-blocking-script";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 
@@ -65,6 +66,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="scroll-smooth">
+      <head>
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: NEXT_THEMES_HEAD_INIT.trim(),
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >

@@ -36,7 +36,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserDto me(User user) {
         User fresh = userRepository.findById(user.getId()).orElseThrow();
-        return UserDto.from(fresh, storageService);
+        return userDtoFor(fresh);
     }
 
     @Transactional
@@ -48,7 +48,35 @@ public class UserService {
         } else {
             user.setPhone(null);
         }
-        return UserDto.from(userRepository.save(user), storageService);
+        userRepository.save(user);
+
+        if (user.getRole() == Role.PATIENT) {
+            Patient p =
+                    patientRepository
+                            .findByUserId(user.getId())
+                            .orElseThrow(() -> new IllegalStateException("Patient row missing"));
+            if (req.dateOfBirth() != null) {
+                p.setDateOfBirth(req.dateOfBirth());
+            }
+            if (req.gender() != null) {
+                p.setGender(req.gender());
+            }
+            if (req.bloodGroup() != null) {
+                String bg = req.bloodGroup().trim();
+                p.setBloodGroup(bg.isEmpty() ? null : bg);
+            }
+            if (req.allergies() != null) {
+                String a = req.allergies().trim();
+                p.setAllergies(a.isEmpty() ? null : a);
+            }
+            if (req.emergencyContact() != null) {
+                String e = req.emergencyContact().trim();
+                p.setEmergencyContact(e.isEmpty() ? null : e);
+            }
+            patientRepository.save(p);
+        }
+
+        return userDtoFor(userRepository.findById(user.getId()).orElseThrow());
     }
 
     @Transactional
@@ -82,7 +110,16 @@ public class UserService {
                 // best-effort cleanup
             }
         }
-        return UserDto.from(user, storageService);
+        return userDtoFor(user);
+    }
+
+    private UserDto userDtoFor(User user) {
+        if (user.getRole() == Role.PATIENT) {
+            Patient p =
+                    patientRepository.findByUserId(user.getId()).orElse(null);
+            return UserDto.from(user, storageService, p);
+        }
+        return UserDto.from(user, storageService, null);
     }
 
     @Transactional(readOnly = true)

@@ -7,4 +7,5 @@ public record DoctorSummaryDto(
         String fullName,
         String specialization,
         BigDecimal consultationFee,
-        String profilePictureUrl) {}
+        String profilePictureUrl,
+        String availabilitySummary) {}

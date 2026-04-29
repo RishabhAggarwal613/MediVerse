@@ -64,6 +64,8 @@ export function updateMyDoctorProfile(body: {
   yearsExperience?: number | null;
   consultationFee?: number | null;
   bio?: string;
+  practiceCity?: string;
+  languages?: string;
 }) {
   return fromAxios<DoctorPublicDto>(() =>
     api.put("/doctors/me/profile", body),

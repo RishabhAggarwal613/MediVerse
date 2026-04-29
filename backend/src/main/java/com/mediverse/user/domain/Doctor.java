@@ -56,6 +56,12 @@ public class Doctor {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
+    @Column(name = "practice_city", length = 120)
+    private String practiceCity;
+
+    @Column(length = 512)
+    private String languages;
+
     @Column(name = "license_doc_url", nullable = false, length = 500)
     private String licenseDocUrl;
 

@@ -12,4 +12,6 @@ public record DoctorPublicDto(
         Integer yearsExperience,
         BigDecimal consultationFee,
         String bio,
+        String practiceCity,
+        String languages,
         boolean verified) {}

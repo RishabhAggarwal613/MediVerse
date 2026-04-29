@@ -24,6 +24,7 @@ export interface DoctorSummaryDto {
   specialization: string | null;
   consultationFee: number | null;
   profilePictureUrl: string | null;
+  availabilitySummary: string | null;
 }
 
 export interface DoctorPublicDto {
@@ -35,6 +36,8 @@ export interface DoctorPublicDto {
   yearsExperience: number | null;
   consultationFee: number | null;
   bio: string | null;
+  practiceCity: string | null;
+  languages: string | null;
   verified: boolean;
 }
 

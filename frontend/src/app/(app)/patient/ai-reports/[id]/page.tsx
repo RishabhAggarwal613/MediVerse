@@ -5,6 +5,7 @@ import * as React from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { AppPageShell } from "@/components/app/app-page-shell";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import {
@@ -81,7 +82,8 @@ export default function PatientAiReportDetailPage() {
   const err = q.error ? unwrapApiErrorMessage(q.error) : null;
 
   return (
-    <Container className="py-10">
+    <AppPageShell variant="patient">
+      <Container className="relative z-[1] py-10">
       <div className="mx-auto max-w-3xl space-y-8">
         <Link
           href="/patient/ai-reports"
@@ -122,7 +124,7 @@ export default function PatientAiReportDetailPage() {
               </p>
             ) : null}
 
-            <section className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04]">
+            <section className="surface-app p-6 shadow-md">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Summary
               </h2>
@@ -130,7 +132,7 @@ export default function PatientAiReportDetailPage() {
             </section>
 
             {data.keyFindings.length > 0 && (
-              <section className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04]">
+              <section className="surface-app p-6 shadow-md">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                   Key findings
                 </h2>
@@ -156,7 +158,7 @@ export default function PatientAiReportDetailPage() {
               </section>
             )}
 
-            <section className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04]">
+            <section className="surface-app p-6 shadow-md">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Recommendations
               </h2>
@@ -251,5 +253,6 @@ export default function PatientAiReportDetailPage() {
         )}
       </div>
     </Container>
+    </AppPageShell>
   );
 }

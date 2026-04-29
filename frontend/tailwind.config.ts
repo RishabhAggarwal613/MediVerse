@@ -47,7 +47,6 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // brand palette (emerald-forward, vibrant)
         brand: {
           50: "#ecfdf5",
           100: "#d1fae5",

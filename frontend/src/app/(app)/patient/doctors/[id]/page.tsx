@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
+import { AppPageShell } from "@/components/app/app-page-shell";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import {
 } from "@/lib/api/doctors";
 import { bookAppointment } from "@/lib/api/appointments";
 import { unwrapApiErrorMessage } from "@/lib/api/errors";
+import { localDateInputValue } from "@/lib/date";
 import type { DoctorAvailabilityRuleDto } from "@/types/doctors";
 
 function padTime(isoLike: string) {
@@ -33,7 +35,7 @@ export default function PatientDoctorDetailPage() {
   const [reason, setReason] = useState("");
 
   useEffect(() => {
-    setDate(new Date().toISOString().slice(0, 10));
+    setDate(localDateInputValue());
   }, []);
 
   const { data: doctor, error: doctorErr } = useQuery({
@@ -78,38 +80,45 @@ export default function PatientDoctorDetailPage() {
 
   if (!Number.isFinite(id)) {
     return (
-      <Container className="py-16">
-        <p className="text-destructive">Invalid doctor.</p>
-      </Container>
+      <AppPageShell variant="patient">
+        <Container className="relative z-[1] py-16">
+          <p className="text-destructive">Invalid doctor.</p>
+        </Container>
+      </AppPageShell>
     );
   }
 
   if (doctorErr) {
     return (
-      <Container className="py-16">
-        <p className="text-destructive">Doctor could not be loaded.</p>
-        <Button asChild className="mt-4" variant="outline">
-          <Link href="/patient/doctors">Back</Link>
-        </Button>
-      </Container>
+      <AppPageShell variant="patient">
+        <Container className="relative z-[1] py-16">
+          <p className="text-destructive">Doctor could not be loaded.</p>
+          <Button asChild className="mt-4" variant="outline">
+            <Link href="/patient/doctors">Back</Link>
+          </Button>
+        </Container>
+      </AppPageShell>
     );
   }
 
   if (!doctor) {
     return (
-      <Container className="py-16">
-        <p className="text-muted-foreground">Loading…</p>
-      </Container>
+      <AppPageShell variant="patient">
+        <Container className="relative z-[1] py-16">
+          <p className="text-muted-foreground">Loading…</p>
+        </Container>
+      </AppPageShell>
     );
   }
 
   return (
-    <Container className="py-10">
+    <AppPageShell variant="patient">
+      <Container className="relative z-[1] max-w-5xl py-10">
       <Button asChild variant="ghost" className="-ml-4 mb-4">
         <Link href="/patient/doctors">← Back to results</Link>
       </Button>
 
-      <div className="rounded-3xl border border-white/60 bg-white/80 p-8 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+      <div className="surface-app p-8">
         <div className="flex flex-wrap gap-6">
           <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-muted">
             {doctor.practitioner.profilePictureUrl ? (
@@ -129,12 +138,18 @@ export default function PatientDoctorDetailPage() {
             <p className="text-xs font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-400">
               Specialist
             </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight">
+            <h1 className="mt-1 bg-gradient-to-r from-brand-800 via-teal-800 to-emerald-800 bg-clip-text text-3xl font-bold tracking-tight text-transparent dark:from-brand-200 dark:via-teal-200 dark:to-brand-300">
               Dr. {doctor.practitioner.fullName}
             </h1>
             <p className="mt-2 text-muted-foreground">
               {doctor.specialization ?? "—"}
             </p>
+            {(doctor.practiceCity || doctor.languages) && (
+              <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
+                {doctor.practiceCity && <li>Practice: {doctor.practiceCity}</li>}
+                {doctor.languages && <li>Languages: {doctor.languages}</li>}
+              </ul>
+            )}
             {doctor.consultationFee != null && (
               <p className="mt-3 text-lg font-semibold text-brand-800 dark:text-brand-300">
                 Consultation fee: {Number(doctor.consultationFee).toFixed(2)} INR
@@ -142,6 +157,13 @@ export default function PatientDoctorDetailPage() {
             )}
           </div>
         </div>
+
+        {doctor.qualifications && (
+          <p className="mt-6 text-sm">
+            <span className="font-semibold text-foreground">Qualifications:</span>{" "}
+            <span className="text-muted-foreground">{doctor.qualifications}</span>
+          </p>
+        )}
 
         {doctor.bio && (
           <p className="mt-8 text-sm leading-relaxed text-foreground/90">
@@ -186,6 +208,7 @@ export default function PatientDoctorDetailPage() {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              className="rounded-xl border-border bg-background text-foreground dark:border-white/15 dark:bg-white/[0.08]"
             />
           </div>
           <div className="mt-6 max-w-md space-y-2">
@@ -195,6 +218,7 @@ export default function PatientDoctorDetailPage() {
               placeholder="e.g. follow-up, symptoms"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              className="rounded-xl border-border bg-background text-foreground dark:border-white/15 dark:bg-white/[0.08]"
             />
           </div>
           {bookMut.isSuccess && (
@@ -245,5 +269,6 @@ export default function PatientDoctorDetailPage() {
         </p>
       </div>
     </Container>
+    </AppPageShell>
   );
 }

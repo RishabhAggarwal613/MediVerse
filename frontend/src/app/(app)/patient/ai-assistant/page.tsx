@@ -1,9 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
+import { Bot } from "lucide-react";
 
+import { AppPageHeader } from "@/components/app/app-page-header";
+import { AppPageShell } from "@/components/app/app-page-shell";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import {
@@ -173,25 +175,20 @@ export default function PatientAiAssistantPage() {
   const composerDisabled = sendMut.isPending;
 
   return (
-    <Container className="py-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-400">
-            Wellness
-          </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">AI health assistant</h1>
-          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            General health literacy — not medical advice. For emergencies, seek urgent care immediately.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/patient">Patient home</Link>
-        </Button>
-      </div>
+    <AppPageShell variant="patient">
+      <Container className="relative z-[1] max-w-6xl py-8">
+        <AppPageHeader
+          role="patient"
+          pill="Wellness AI"
+          icon={Bot}
+          title="Health assistant"
+          description="General health literacy — not medical advice. For emergencies, seek urgent care immediately."
+          className="mb-8"
+        />
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,280px)_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,280px)_1fr]">
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-border/60 bg-white/70 p-4 shadow-sm backdrop-blur dark:bg-white/[0.04]">
+          <div className="surface-app space-y-4 p-4 shadow-md">
             <p className="text-xs font-semibold uppercase text-muted-foreground">Today&apos;s tip</p>
             {tipQ.isPending && (
               <p className="mt-2 text-sm text-muted-foreground">Loading…</p>
@@ -209,7 +206,7 @@ export default function PatientAiAssistantPage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-border/60 bg-white/70 p-4 shadow-sm backdrop-blur dark:bg-white/[0.04]">
+          <div className="surface-app p-4 shadow-md">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold uppercase text-muted-foreground">Conversations</p>
               <Button
@@ -257,7 +254,7 @@ export default function PatientAiAssistantPage() {
           </div>
         </aside>
 
-        <section className="flex min-h-[min(72vh,680px)] flex-col overflow-hidden rounded-2xl border border-border/60 bg-muted/20 shadow-inner dark:bg-white/[0.03]">
+        <section className="surface-app flex min-h-[min(72vh,680px)] flex-col overflow-hidden p-0 shadow-md">
           <header className="shrink-0 border-b border-border/50 bg-background/80 px-4 py-3 backdrop-blur">
             <p className="text-sm font-semibold">
               {activeMeta?.title?.trim() || (activeSessionId ? "Conversation" : "New message")}
@@ -396,5 +393,6 @@ export default function PatientAiAssistantPage() {
         </section>
       </div>
     </Container>
+    </AppPageShell>
   );
 }

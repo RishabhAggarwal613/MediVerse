@@ -3,6 +3,7 @@ package com.mediverse.doctor.repository;
 import com.mediverse.doctor.domain.TimeSlot;
 import jakarta.persistence.LockModeType;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -27,6 +28,8 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
 
     List<TimeSlot> findByDoctor_IdAndSlotDateAndBookedFalseOrderByStartTimeAsc(
             Long doctorId, LocalDate slotDate);
+
+    boolean existsByDoctor_IdAndSlotDateAndStartTime(Long doctorId, LocalDate slotDate, LocalTime startTime);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(

@@ -2,7 +2,7 @@
 
 Phase-by-phase status, working endpoints, and test counts.
 
-> Last updated: **2026-04-29** — **Phase 7 (AI report scanning)** shipped: Flyway **`V7__ai_reports.sql`**, Gemini Vision client, patient upload/history/share UI, doctor read-only detail. **`mvn test`** → **23** tests (adds **`AiReportControllerTest`**).
+> Last updated: **2026-04-29** — **Profiles & find-doctors polish:** Flyway **`V8`**, expanded **`UserDto`** / **`UpdateMeRequest`** (patient clinical fields), doctor **`practice_city`** / **`languages`**, **`DoctorSummaryDto.availabilitySummary`** from weekly rules, themed app shell + patient find-doctors UX. **`mvn test`** → **23** tests.
 
 ## Phase status
 
@@ -16,7 +16,13 @@ Phase-by-phase status, working endpoints, and test counts.
 | 5 | Appointments | Done |
 | **6** | **AI Health Assistant** | **Done** (Gemini chat + sessions + `/health-tip`) |
 | **7** | **AI Report Scanning** | **Done** (upload + Vision + `ai_reports` + share + patient/doctor pages) |
-| 8 | Polish | Pending |
+| **8** | **Polish** | **In progress** (theme, profiles, browse — see snapshot below) |
+
+## Phase 8 — in progress (2026-04-29 snapshot)
+
+- **Data:** **`V8__doctor_practice_fields.sql`** — nullable **`practice_city`**, **`languages`** on **`doctors`**.
+- **Backend:** **`PatientProfileDto`** on **`UserDto`**; **`UserService.updateMe`** updates **`Patient`** when role is PATIENT; **`DoctorService.searchDoctors`** fills **`availabilitySummary`** from active **`DoctorAvailability`** (batch query); doctor public/profile DTOs include practice fields.
+- **Frontend:** **`/patient/profile`** (contact + health baseline); expanded doctor profile; **`/patient/doctors`** dual-theme filters + real availability snippet on cards; shared **`AppPageShell`** / nav / globals.
 
 ## Phase 8 — Polish — reminders (planned; see `docs/ARCHITECTURE.md` Phase 8)
 
