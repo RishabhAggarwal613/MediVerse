@@ -82,5 +82,5 @@ Booking, lifecycle emails, dashboard stats — see **`docs/ARCHITECTURE.md`** fo
 ## Source control
 
 - Remote: `git@github.com:RishabhAggarwal613/MediVerse.git` (SSH).
-- **Recent merge:** profiles / V8 / theme — **`0db9665`** on **`main`** (see `git log` for tip).
+- **Recent tip:** Phase 8 polish — **`59566bc`** on **`main`** (see `git log` for latest).
 - **Phase 5 release (historical):** **`6279143`** on **`main`**.
