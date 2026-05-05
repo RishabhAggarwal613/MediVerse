@@ -1,6 +1,7 @@
 package com.mediverse.appointment.domain;
 
 import com.mediverse.doctor.domain.TimeSlot;
+import com.mediverse.doctor.domain.ConsultationMode;
 import com.mediverse.user.domain.Doctor;
 import com.mediverse.user.domain.Patient;
 import jakarta.persistence.Column;
@@ -59,6 +60,19 @@ public class Appointment {
 
     @Column(name = "doctor_note", columnDefinition = "TEXT")
     private String doctorNote;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "consultation_mode", nullable = false, length = 16)
+    private ConsultationMode consultationMode;
+
+    @Column(name = "meet_join_url", length = 1024)
+    private String meetJoinUrl;
+
+    @Column(name = "calendly_event_uri", length = 512)
+    private String calendlyEventUri;
+
+    @Column(name = "calendly_invitee_uri", length = 512)
+    private String calendlyInviteeUri;
 
     @Column(name = "scheduled_at", nullable = false)
     private LocalDateTime scheduledAt;

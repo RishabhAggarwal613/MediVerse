@@ -15,7 +15,11 @@ public record AppointmentDto(
         String doctorEmail,
         String reason,
         String doctorNote,
-        /** Doctor practice street / clinic address for patient navigation — optional. */
+        /** {@code IN_CLINIC} or {@code VIDEO}. */
+        String consultationMode,
+        /** Populated after external scheduling hook (Calendly / Meet); often null today. */
+        String meetJoinUrl,
+        /** Doctor practice street — optional for navigation when in-clinic. */
         String practiceAddressFormatted,
         BigDecimal practiceLatitude,
         BigDecimal practiceLongitude) {}

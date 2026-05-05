@@ -7,6 +7,7 @@ import com.mediverse.doctor.dto.DoctorDashboardStatsDto;
 import com.mediverse.doctor.dto.DoctorPublicDto;
 import com.mediverse.doctor.dto.DoctorSummaryDto;
 import com.mediverse.doctor.dto.PageResponse;
+import com.mediverse.doctor.domain.ConsultationMode;
 import com.mediverse.doctor.dto.SpecializationOptionDto;
 import com.mediverse.doctor.dto.TimeSlotItemDto;
 import com.mediverse.doctor.dto.UpdateDoctorProfileRequest;
@@ -112,7 +113,9 @@ public class DoctorController {
 
     @GetMapping("/{id}/slots")
     public ApiResponse<List<TimeSlotItemDto>> slotsForDate(
-            @PathVariable Long id, @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return ApiResponse.ok(doctorService.listFreeSlots(id, date));
+            @PathVariable Long id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(defaultValue = "IN_CLINIC") ConsultationMode consultationMode) {
+        return ApiResponse.ok(doctorService.listFreeSlots(id, date, consultationMode));
     }
 }

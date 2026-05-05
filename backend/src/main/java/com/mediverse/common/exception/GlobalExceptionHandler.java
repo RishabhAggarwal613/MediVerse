@@ -91,8 +91,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest req) {
-        log.warn("Data integrity violation on {}: {}", req.getRequestURI(), ex.getMostSpecificCause().getMessage());
-        return build(ErrorCode.CONFLICT, "Conflicts with existing data", null, req);
+        String cause = ex.getMostSpecificCause().getMessage();
+        log.warn("Data integrity violation on {}: {}", req.getRequestURI(), cause);
+        String message = "Conflicts with existing data";
+        if (cause != null
+                && (cause.contains("uq_doctor_slot_mode") || cause.contains("Duplicate entry"))) {
+            message =
+                    "That schedule produced duplicate bookable slots. Remove or adjust overlapping rules "
+                            + "and try again.";
+        }
+        return build(ErrorCode.CONFLICT, message, null, req);
     }
 
     @ExceptionHandler(BadCredentialsException.class)

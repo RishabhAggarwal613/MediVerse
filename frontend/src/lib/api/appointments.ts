@@ -2,7 +2,12 @@ import { api } from "@/lib/api/client";
 import { fromAxios } from "@/lib/api/unpack";
 import type { AppointmentDto } from "@/types/appointments";
 
-export function bookAppointment(body: { slotId: number; reason?: string }) {
+export function bookAppointment(body: {
+  slotId: number;
+  reason?: string;
+  /** Should match the slot row's mode; recommended for UX validation. */
+  consultationMode?: "IN_CLINIC" | "VIDEO";
+}) {
   return fromAxios<AppointmentDto>(() => api.post("/appointments", body));
 }
 

@@ -20,4 +20,6 @@ public record UpdateDoctorProfileRequest(
         @Size(max = 500) String practiceAddressFormatted,
         @DecimalMin(value = "-90.0", inclusive = true) @DecimalMax(value = "90.0", inclusive = true) BigDecimal practiceLatitude,
         @DecimalMin(value = "-180.0", inclusive = true) @DecimalMax(value = "180.0", inclusive = true) BigDecimal practiceLongitude,
-        @Size(max = 256) String practicePlaceId) {}
+        @Size(max = 256) String practicePlaceId,
+        Boolean offersInClinic,
+        Boolean offersVideo) {}

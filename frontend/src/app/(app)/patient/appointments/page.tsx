@@ -6,6 +6,7 @@ import { CalendarClock, ChevronRight, Navigation, UserRound } from "lucide-react
 
 import { AppPageHeader } from "@/components/app/app-page-header";
 import { AppPageShell } from "@/components/app/app-page-shell";
+import { GoogleCalendarAppointmentButton } from "@/components/appointments/google-calendar-appointment-button";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import {
@@ -18,11 +19,17 @@ import { cn } from "@/lib/utils";
 import type { AppointmentDto } from "@/types/appointments";
 
 function navigateHref(a: AppointmentDto): string | null {
+  if (a.consultationMode === "VIDEO") return null;
   return googleMapsDirectionsUrl({
     latitude: a.practiceLatitude ?? null,
     longitude: a.practiceLongitude ?? null,
     address: a.practiceAddressFormatted ?? null,
   });
+}
+
+function visitTypeLabel(mode: string | undefined | null) {
+  if (mode === "VIDEO") return "Video consultation";
+  return "In-clinic";
 }
 
 function formatWhen(isoLocal: string) {
@@ -150,11 +157,31 @@ export default function PatientAppointmentsPage() {
                       >
                         {a.status.replaceAll("_", " ")}
                       </span>
+                      {a.consultationMode ? (
+                        <span className="rounded-full border border-border/70 bg-muted/40 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                          {visitTypeLabel(a.consultationMode)}
+                        </span>
+                      ) : null}
                     </div>
                     <p className="mt-2 text-lg font-semibold tracking-tight">{a.doctorName}</p>
                     <p className="mt-1 text-sm tabular-nums text-muted-foreground">
                       {formatWhen(a.scheduledAt)}
                     </p>
+                    {a.meetJoinUrl &&
+                      a.consultationMode === "VIDEO" &&
+                      ["PENDING", "CONFIRMED", "COMPLETED"].includes(a.status) && (
+                      <p className="mt-3 max-w-full text-xs leading-relaxed">
+                        <span className="font-medium text-muted-foreground">Meeting link: </span>
+                        <a
+                          href={a.meetJoinUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="break-all font-medium text-sky-700 underline decoration-sky-400/70 underline-offset-2 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300"
+                        >
+                          {a.meetJoinUrl}
+                        </a>
+                      </p>
+                    )}
                     {a.reason && (
                       <p className="mt-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm text-foreground/90">
                         Reason: {a.reason}
@@ -162,6 +189,7 @@ export default function PatientAppointmentsPage() {
                     )}
                   </div>
                   <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 sm:ml-auto sm:w-auto sm:flex-col sm:items-stretch">
+                    <GoogleCalendarAppointmentButton appointment={a} role="patient" />
                     {navTo && (
                       <Button
                         asChild
@@ -180,6 +208,23 @@ export default function PatientAppointmentsPage() {
                         </a>
                       </Button>
                     )}
+                    {a.meetJoinUrl &&
+                      (a.status === "CONFIRMED" || a.status === "PENDING") && (
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full border-sky-200/80 bg-sky-50/90 shadow-sm backdrop-blur dark:border-sky-900/50 dark:bg-sky-950/35"
+                        >
+                          <a
+                            href={a.meetJoinUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Join video
+                          </a>
+                        </Button>
+                      )}
                     {(a.status === "PENDING" || a.status === "CONFIRMED") && (
                       <Button
                         variant="destructive"

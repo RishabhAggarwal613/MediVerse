@@ -3,28 +3,28 @@
 Update at phase boundaries or when pausing mid-phase. Answers: what happened,
 what's in progress, what's next.
 
-> Last updated: **2026-05-05** — Docs + memory bank synced with **practice location (V9)**,
-> **patient Navigate**, **doctor profile Maps/geolocation**, **slot-list stability** fixes; pushed to GitHub.
+> Last updated: **2026-05-06** — Memory bank refresh: **`V13`** FK-safe pruning, Calendar UX on appointment cards.
 
 ## Current focus
 
-**Phase 8** remains the last numbered phase. **Incremental UX** shipped: doctor practice
-street + coordinates (`V9`), `AppointmentDto` practice fields, Google Maps picker on
-**`/doctor/profile`**, **Navigate** on patient appointments + dashboard next-visit card.
+**Phase 8** remains the last numbered phase. **Appointments:** cross-modality **one moment** booking (peer
+`time_slots` locked/marked booked together; cancel/reject clears the moment), duplicate guard on **exact
+`scheduledAt`**, **`deleteUnbookedBetween`** skips rows still referenced by **`appointments`**. **`V13`** syncs
+`is_booked` across sibling rows, deletes only unbooked slots **not** FK-referenced by any appointment, clears
+**`doctor_availability`** (dev reset — re-seed rules). **Frontend:** **Google Calendar** add-to-calendar on patient
+and doctor appointment cards (**`lib/calendar-links.ts`**, **`GoogleCalendarAppointmentButton`**), visible **video
+meeting link** text on cards where applicable.
 
 **Optional next:** Gemini 503 retries/backoff, Dockerfile stack (see **`docs/ARCHITECTURE.md`** Phase 8 reminders).
 
 ## Recent changes (2026-05)
 
-- **DB:** **`V9__doctor_practice_address.sql`** — `practice_address_formatted`, `practice_latitude`,
-  `practice_longitude`, `practice_place_id` on **`doctors`**.
-- **Backend:** `Doctor`, `UpdateDoctorProfileRequest`, `DoctorPublicDto`; **`AppointmentDto`** + **`AppointmentService.toDtoWithDetails`**
-  expose practice location for patient navigation; **`SlotGenerationService`** / free-slot flow avoids invalidating `slotId`
-  between listing and book; **`TimeSlotRepository`** support for repair/queries as needed.
-- **Frontend:** **`PracticeAddressPicker`** (Places + map + reverse geocode + **Use current location**);
-  **`lib/maps-links.ts`**; patient **Navigate**; doctor profile + doctor detail maps links; optional
-  **`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`** in **`frontend/.env.local`**.
-- **Cleanup:** removed ephemeral Cursor **`AgentDebugLog`** instrumentation from auth/email services before push.
+- **Appointments / slots:** shared-moment booking + release; **`V13`** + runtime **`deleteUnbookedBetween`** avoid
+  deleting **`time_slots`** still referenced by **`appointments`** (FK 1451 fix).
+- **Frontend appointments:** **Google Calendar** template links + **meeting URL** on patient/doctor cards and patient
+  home “next appointment”.
+- **Earlier in May:** **`V9`** practice address + lat/lon; **`AppointmentDto`** practice fields; patient **Navigate**;
+  **`PracticeAddressPicker`**; slot-list stability around book.
 
 ## What's next
 

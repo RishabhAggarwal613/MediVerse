@@ -12,6 +12,10 @@ export interface AppointmentDto {
   doctorEmail: string;
   reason: string | null;
   doctorNote: string | null;
+  /** {@code IN_CLINIC} | {@code VIDEO} */
+  consultationMode?: string | null;
+  /** Video join link when scheduled externally (e.g. Meet); often unset. */
+  meetJoinUrl?: string | null;
   /** Doctor practice location for maps — set when doctor saved address/coords */
   practiceAddressFormatted?: string | null;
   practiceLatitude?: number | null;

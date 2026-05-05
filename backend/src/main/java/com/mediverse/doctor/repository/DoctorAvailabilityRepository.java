@@ -1,5 +1,6 @@
 package com.mediverse.doctor.repository;
 
+import com.mediverse.doctor.domain.ConsultationMode;
 import com.mediverse.doctor.domain.DoctorAvailability;
 import java.util.Collection;
 import java.util.List;
@@ -15,6 +16,8 @@ public interface DoctorAvailabilityRepository extends JpaRepository<DoctorAvaila
             Long doctorId);
 
     Collection<DoctorAvailability> findByDoctor_IdOrderByDayOfWeekAscStartTimeAsc(Long doctorId);
+
+    List<DoctorAvailability> findByDoctor_IdAndConsultationMode(Long doctorId, ConsultationMode consultationMode);
 
     @Query(
             """

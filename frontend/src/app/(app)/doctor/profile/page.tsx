@@ -42,6 +42,8 @@ export default function DoctorProfilePage() {
     lng: null,
     placeId: null,
   });
+  const [offersInClinic, setOffersInClinic] = useState(true);
+  const [offersVideo, setOffersVideo] = useState(true);
   const [pickerRemount, setPickerRemount] = useState(0);
 
   const { data, isLoading } = useQuery({
@@ -74,6 +76,8 @@ export default function DoctorProfilePage() {
       lng: data.practiceLongitude ?? null,
       placeId: data.practicePlaceId ?? null,
     });
+    setOffersInClinic(data.offersInClinic);
+    setOffersVideo(data.offersVideo);
     setPickerRemount((k) => k + 1);
   }, [data, reset]);
 
@@ -109,6 +113,8 @@ export default function DoctorProfilePage() {
       practiceLatitude: practiceLoc.lat,
       practiceLongitude: practiceLoc.lng,
       practicePlaceId: practiceLoc.placeId?.trim() || null,
+      offersInClinic,
+      offersVideo,
     });
   }
 
@@ -165,6 +171,41 @@ export default function DoctorProfilePage() {
                   {...register("specialization")}
                 />
               </div>
+              <div className="rounded-xl border border-teal-200/50 bg-teal-50/40 p-4 dark:border-teal-900/40 dark:bg-teal-950/20">
+                <p className="text-sm font-medium text-foreground">Consultation types you offer</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Turning one off removes future bookable slots for that type (existing rules are deactivated).
+                </p>
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:gap-8">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="rounded border-border text-teal-600 focus:ring-teal-500"
+                      checked={offersInClinic}
+                      disabled={
+                        mutation.isPending ||
+                        (offersInClinic && !offersVideo)
+                      }
+                      onChange={(e) => setOffersInClinic(e.target.checked)}
+                    />
+                    In-clinic visits
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="rounded border-border text-teal-600 focus:ring-teal-500"
+                      checked={offersVideo}
+                      disabled={
+                        mutation.isPending ||
+                        (!offersInClinic && offersVideo)
+                      }
+                      onChange={(e) => setOffersVideo(e.target.checked)}
+                    />
+                    Video consultations
+                  </label>
+                </div>
+              </div>
+
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="practiceCity">Primary practice city</Label>

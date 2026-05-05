@@ -89,6 +89,15 @@ public class Doctor {
     @Builder.Default
     private boolean verified = false;
 
+    /** Whether this doctor accepts in-person visits (rules may still omit IN_CLINIC availability). */
+    @Column(name = "offers_in_clinic", nullable = false)
+    @Builder.Default
+    private boolean offersInClinic = true;
+
+    @Column(name = "offers_video", nullable = false)
+    @Builder.Default
+    private boolean offersVideo = true;
+
     /** Denormalized cache populated by appointment-completion stats (Phase 5+). */
     @Column(name = "rating_avg", precision = 2, scale = 1)
     private BigDecimal ratingAvg;

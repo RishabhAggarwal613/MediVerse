@@ -20,4 +20,6 @@ public record DoctorPublicDto(
         String practicePlaceId,
         String languages,
         VerificationStatus verificationStatus,
-        boolean verified) {}
+        boolean verified,
+        boolean offersInClinic,
+        boolean offersVideo) {}

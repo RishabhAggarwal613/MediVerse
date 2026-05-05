@@ -11,6 +11,9 @@ export type ScheduleDay =
   | "SAT"
   | "SUN";
 
+/** Backend consultation mode enum (string form). */
+export type ConsultationMode = "IN_CLINIC" | "VIDEO";
+
 export interface PageResponseDto<T> {
   content: T[];
   page: number;
@@ -47,6 +50,8 @@ export interface DoctorPublicDto {
   languages: string | null;
   verificationStatus: VerificationStatus;
   verified: boolean;
+  offersInClinic: boolean;
+  offersVideo: boolean;
 }
 
 export interface SpecializationOptionDto {
@@ -57,6 +62,7 @@ export interface SpecializationOptionDto {
 export interface DoctorAvailabilityRuleDto {
   id: number;
   dayOfWeek: ScheduleDay;
+  consultationMode: ConsultationMode;
   startTime: string;
   endTime: string;
   slotDurationMinutes: number;
@@ -70,6 +76,7 @@ export interface TimeSlotItemDto {
   startTime: string;
   endTime: string;
   requiresApproval: boolean;
+  consultationMode: ConsultationMode;
 }
 
 export interface DoctorDashboardStatsDto {

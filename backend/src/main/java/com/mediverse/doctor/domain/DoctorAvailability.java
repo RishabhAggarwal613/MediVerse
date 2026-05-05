@@ -40,6 +40,11 @@ public class DoctorAvailability {
     private Doctor doctor;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "consultation_mode", nullable = false, length = 16)
+    @Builder.Default
+    private ConsultationMode consultationMode = ConsultationMode.IN_CLINIC;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "day_of_week", nullable = false, length = 16)
     private ScheduleDay dayOfWeek;
 

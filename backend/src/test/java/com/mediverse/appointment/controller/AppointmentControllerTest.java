@@ -72,6 +72,8 @@ class AppointmentControllerTest {
                                         "d@example.com",
                                         "cold",
                                         null,
+                                        "IN_CLINIC",
+                                        null,
                                         null,
                                         null,
                                         null)));

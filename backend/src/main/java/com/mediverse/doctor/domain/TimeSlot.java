@@ -3,6 +3,8 @@ package com.mediverse.doctor.domain;
 import com.mediverse.user.domain.Doctor;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -54,6 +56,11 @@ public class TimeSlot {
     @Column(name = "is_booked", nullable = false)
     @Builder.Default
     private boolean booked = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "consultation_mode", nullable = false, length = 16)
+    @Builder.Default
+    private ConsultationMode consultationMode = ConsultationMode.IN_CLINIC;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

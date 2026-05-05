@@ -25,6 +25,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalDateTime rangeEndExclusive,
             Collection<AppointmentStatus> statuses);
 
+    /** Prevents two active bookings for the same patient, doctor, and wall-clock instant. */
+    boolean existsByPatient_IdAndDoctor_IdAndScheduledAtAndStatusIn(
+            Long patientId, Long doctorId, LocalDateTime scheduledAt, Collection<AppointmentStatus> statuses);
+
     @EntityGraph(attributePaths = {"patient.user", "doctor.user", "timeSlot"})
     List<Appointment> findByPatient_IdOrderByScheduledAtDesc(Long patientId);
 

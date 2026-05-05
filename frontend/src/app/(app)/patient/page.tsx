@@ -17,6 +17,7 @@ import {
 
 import { AppPageShell } from "@/components/app/app-page-shell";
 import { OnboardingChecklist } from "@/components/app/onboarding-checklist";
+import { GoogleCalendarAppointmentButton } from "@/components/appointments/google-calendar-appointment-button";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
@@ -134,7 +135,7 @@ export default function PatientHomePage() {
   );
 
   const nextApptNavigateHref = useMemo(() => {
-    if (!nextAppt) return null;
+    if (!nextAppt || nextAppt.consultationMode === "VIDEO") return null;
     return googleMapsDirectionsUrl({
       latitude: nextAppt.practiceLatitude ?? null,
       longitude: nextAppt.practiceLongitude ?? null,
@@ -203,7 +204,29 @@ export default function PatientHomePage() {
                         </span>
                       )}
                     </p>
+                    {nextAppt.meetJoinUrl &&
+                      nextAppt.consultationMode === "VIDEO" &&
+                      (nextAppt.status === "CONFIRMED" ||
+                        nextAppt.status === "PENDING") && (
+                      <p className="mt-3 max-w-full text-xs leading-relaxed">
+                        <span className="font-medium text-muted-foreground">
+                          Meeting link:{" "}
+                        </span>
+                        <a
+                          href={nextAppt.meetJoinUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="break-all font-medium text-sky-700 underline decoration-sky-400/70 underline-offset-2 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300"
+                        >
+                          {nextAppt.meetJoinUrl}
+                        </a>
+                      </p>
+                    )}
                     <div className="mt-5 flex flex-wrap gap-2">
+                      <GoogleCalendarAppointmentButton
+                        appointment={nextAppt}
+                        role="patient"
+                      />
                       {nextApptNavigateHref && (
                         <Button asChild variant="outline" size="sm" className="rounded-full">
                           <a
@@ -217,6 +240,24 @@ export default function PatientHomePage() {
                           </a>
                         </Button>
                       )}
+                      {nextAppt.meetJoinUrl &&
+                        (nextAppt.status === "CONFIRMED" ||
+                          nextAppt.status === "PENDING") && (
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="rounded-full border-sky-200/70 bg-sky-50/90 dark:border-sky-900/50 dark:bg-sky-950/40"
+                          >
+                            <a
+                              href={nextAppt.meetJoinUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Join video
+                            </a>
+                          </Button>
+                        )}
                       <Button asChild variant="outline" size="sm" className="rounded-full">
                         <Link href="/patient/appointments">Open appointments →</Link>
                       </Button>

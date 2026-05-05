@@ -2,7 +2,7 @@
 
 Phase-by-phase status, working endpoints, and test counts.
 
-> Last updated: **2026-05-05** — **Practice location + patient Navigate** documented; README + `docs/*` + memory bank aligned. Run **`mvn test`** locally after pull (see surefire summary).
+> Last updated: **2026-05-06** — **`V13`** FK-safe slot delete, Google Calendar on appointment cards.
 
 ## Phase status
 
@@ -26,6 +26,17 @@ Phase-by-phase status, working endpoints, and test counts.
 - **`AppointmentDto`** — includes **`practiceAddressFormatted`**, **`practiceLatitude`**, **`practiceLongitude`** from the doctor for **Navigate** (`lib/maps-links.ts` → `google.com/maps/dir`).
 - **Patient UX** — **`/patient/appointments`** + home “next appointment” **Navigate** when location data exists.
 - **Booking stability** — patient slot listing no longer destroys/recreates rows in a way that invalidates **`slotId`** before POST book (`SlotGenerationService` / listing path).
+
+## Post–Phase 8 — cross-modality slot moment (shipped)
+
+- **Flyway `V13__reset_availability_and_unify_slot_booking.sql`** — sync **`is_booked`** across rows sharing `(doctor_id, slot_date, start_time)`; delete unbooked **`time_slots`** only when **no** row in **`appointments`** references them; **`DELETE FROM doctor_availability`** (dev reset — doctors must re-create availability rules).
+- **Runtime:** **`TimeSlotRepository.lockMomentPeersForSlot`** (ordered pessimistic lock); book sets **`booked=true`** on all peer rows; cancel/reject clears all peers for that moment; duplicate guard **`existsByPatient_IdAndDoctor_IdAndScheduledAtAndStatusIn`**. **`deleteUnbookedBetween`** uses **`NOT EXISTS`** appointment reference (same FK rule as **`V13`**).
+
+## Post–Phase 8 — appointment calendar UX (shipped)
+
+- **Patient** — **`/patient/appointments`**, home next-appointment card: **Google Calendar** button (prefilled title, time, location / video link, details with meet URL).
+- **Doctor** — **`/doctor/appointments`**: same **Google Calendar** control, **Join video** when applicable, **Meeting link:** line with full URL on video visits.
+- **Code:** **`frontend/src/lib/calendar-links.ts`**, **`frontend/src/components/appointments/google-calendar-appointment-button.tsx`**.
 
 ## Phase 8 — shipped (original scope)
 
@@ -91,4 +102,4 @@ Booking, lifecycle emails, dashboard stats — see **`docs/ARCHITECTURE.md`** fo
 ## Source control
 
 - Remote: **`git@github.com:RishabhAggarwal613/MediVerse.git`** (SSH).
-- After **`git pull`**, run Flyway-backed backend once so **`V9`** applies on dev MySQL when applicable.
+- After **`git pull`**, run Flyway-backed backend once so **`V9`**/**`V13`** (and later) apply on dev MySQL when applicable. **`V13`** clears availability and unbooked slots — reconfigure doctor availability after migrate.

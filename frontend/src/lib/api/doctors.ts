@@ -45,10 +45,14 @@ export function fetchDoctorAvailabilityPublic(doctorId: number) {
   );
 }
 
-export function fetchDoctorSlots(doctorId: number, date: string) {
+export function fetchDoctorSlots(
+  doctorId: number,
+  date: string,
+  consultationMode: "IN_CLINIC" | "VIDEO",
+) {
   return fromAxios<TimeSlotItemDto[]>(() =>
     api.get(`/doctors/${doctorId}/slots`, {
-      params: { date },
+      params: { date, consultationMode },
     }),
   );
 }
@@ -72,6 +76,8 @@ export function updateMyDoctorProfile(body: {
   practiceLatitude?: number | null;
   practiceLongitude?: number | null;
   practicePlaceId?: string | null;
+  offersInClinic?: boolean;
+  offersVideo?: boolean;
 }) {
   return fromAxios<DoctorPublicDto>(() =>
     api.put("/doctors/me/profile", body),
@@ -92,6 +98,7 @@ export function fetchMyAvailabilityRules() {
 
 export function addAvailabilityRule(body: {
   dayOfWeek: string;
+  consultationMode: "IN_CLINIC" | "VIDEO";
   startTime: string;
   endTime: string;
   slotDurationMinutes: number;
@@ -106,6 +113,7 @@ export function updateAvailabilityRule(
   ruleId: number,
   body: {
     dayOfWeek: string;
+    consultationMode: "IN_CLINIC" | "VIDEO";
     startTime: string;
     endTime: string;
     slotDurationMinutes: number;

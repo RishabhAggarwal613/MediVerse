@@ -8,6 +8,7 @@ import com.mediverse.appointment.dto.CompleteAppointmentRequest;
 import com.mediverse.appointment.repository.AppointmentRepository;
 import com.mediverse.common.api.ApiException;
 import com.mediverse.common.config.properties.AppProperties;
+import com.mediverse.doctor.domain.ConsultationMode;
 import com.mediverse.doctor.domain.TimeSlot;
 import com.mediverse.doctor.repository.TimeSlotRepository;
 import com.mediverse.email.EmailService;
@@ -39,7 +40,7 @@ public class AppointmentService {
 
     private static final ZoneId ZONE = ZoneId.systemDefault();
 
-    /** Active bookings that occupy the patient's same-day quota with one doctor */
+    /** Active bookings that occupy the patient's wall-clock instant with one doctor. */
     private static final Set<AppointmentStatus> DUPLICATE_GUARD_STATUSES =
             Set.copyOf(EnumSet.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED));
 
@@ -85,14 +86,22 @@ public class AppointmentService {
         }
         Patient patient = patientOrThrow(user);
 
-        TimeSlot slot = timeSlotRepository
-                .findLockedById(body.slotId())
-                .orElseThrow(() -> ApiException.notFound("Time slot not found"));
+        List<TimeSlot> peers =
+                timeSlotRepository.lockMomentPeersForSlot(body.slotId());
+        if (peers.isEmpty()) {
+            throw ApiException.notFound("Time slot not found");
+        }
+
+        TimeSlot slot =
+                peers.stream()
+                        .filter(t -> t.getId().equals(body.slotId()))
+                        .findFirst()
+                        .orElseThrow(() -> ApiException.badRequest("Time slot does not match the selected slot"));
 
         Doctor doctor = slot.getDoctor();
         assertPublishableDoctor(doctor);
 
-        if (slot.isBooked()) {
+        if (peers.stream().anyMatch(TimeSlot::isBooked)) {
             throw ApiException.conflict("This slot was just booked. Please pick another.");
         }
 
@@ -100,6 +109,8 @@ public class AppointmentService {
         if (slot.getSlotDate().isAfter(horizonEnd)) {
             throw ApiException.badRequest("That date is outside the booking window");
         }
+
+        ConsultationMode bookedMode = resolveBookedConsultationMode(body, doctor, slot);
 
         LocalDateTime scheduledAt =
                 LocalDateTime.of(slot.getSlotDate(), slot.getStartTime());
@@ -109,11 +120,9 @@ public class AppointmentService {
             throw ApiException.badRequest("Cannot book a slot that has already started");
         }
 
-        LocalDateTime dayStart = slot.getSlotDate().atStartOfDay();
-        LocalDateTime nextDayStart = slot.getSlotDate().plusDays(1).atStartOfDay();
-        if (appointmentRepository.existsByPatient_IdAndDoctor_IdAndScheduledAtBetweenAndStatusIn(
-                patient.getId(), doctor.getId(), dayStart, nextDayStart, DUPLICATE_GUARD_STATUSES)) {
-            throw ApiException.conflict("You already have a booking with this doctor on this day.");
+        if (appointmentRepository.existsByPatient_IdAndDoctor_IdAndScheduledAtAndStatusIn(
+                patient.getId(), doctor.getId(), scheduledAt, DUPLICATE_GUARD_STATUSES)) {
+            throw ApiException.conflict("You already have a booking with this doctor at this time.");
         }
 
         AppointmentStatus initial =
@@ -129,12 +138,13 @@ public class AppointmentService {
                         .timeSlot(slot)
                         .status(initial)
                         .reason(reason)
+                        .consultationMode(bookedMode)
                         .scheduledAt(scheduledAt)
                         .build();
 
         Appointment saved = appointmentRepository.saveAndFlush(apt);
-        slot.setBooked(true);
-        timeSlotRepository.save(slot);
+        peers.forEach(t -> t.setBooked(true));
+        timeSlotRepository.saveAll(peers);
 
         User patientUserEntity = patient.getUser();
         User doctorUserEntity = doctor.getUser();
@@ -197,9 +207,8 @@ public class AppointmentService {
         assertDoctor(appointment, doctor);
         assertStatus(appointment, AppointmentStatus.PENDING);
         appointment.setStatus(AppointmentStatus.REJECTED);
-        releaseSlotBookedFlag(appointment);
+        releaseMomentSlots(appointment);
         Appointment saved = appointmentRepository.save(appointment);
-        timeSlotRepository.save(appointment.getTimeSlot());
 
         AppointmentDto dto = toDtoWithDetails(saved);
         User patientUser = appointment.getPatient().getUser();
@@ -266,9 +275,8 @@ public class AppointmentService {
         }
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
-        releaseSlotBookedFlag(appointment);
+        releaseMomentSlots(appointment);
         Appointment saved = appointmentRepository.save(appointment);
-        timeSlotRepository.save(appointment.getTimeSlot());
 
         AppointmentDto dto = toDtoWithDetails(saved);
         User doctorUser = appointment.getDoctor().getUser();
@@ -330,8 +338,13 @@ public class AppointmentService {
         }
     }
 
-    private static void releaseSlotBookedFlag(Appointment appointment) {
-        appointment.getTimeSlot().setBooked(false);
+    private void releaseMomentSlots(Appointment appointment) {
+        TimeSlot ts = appointment.getTimeSlot();
+        List<TimeSlot> momentPeers =
+                timeSlotRepository.findByDoctor_IdAndSlotDateAndStartTimeOrderByIdAsc(
+                        appointment.getDoctor().getId(), ts.getSlotDate(), ts.getStartTime());
+        momentPeers.forEach(t -> t.setBooked(false));
+        timeSlotRepository.saveAll(momentPeers);
     }
 
     /**
@@ -374,9 +387,39 @@ public class AppointmentService {
                 du.getEmail(),
                 appointment.getReason(),
                 appointment.getDoctorNote(),
+                appointment.getConsultationMode().name(),
+                appointment.getMeetJoinUrl(),
                 doctor.getPracticeAddressFormatted(),
                 doctor.getPracticeLatitude(),
                 doctor.getPracticeLongitude());
+    }
+
+    /** Resolves persisted appointment modality — must align with slot row mode and doctor offers. */
+    private static ConsultationMode resolveBookedConsultationMode(
+            BookAppointmentRequest body, Doctor doctor, TimeSlot slot) {
+        ConsultationMode fixed = slot.getConsultationMode();
+        assertDoctorOffersMode(doctor, fixed);
+        if (body.consultationMode() != null && !body.consultationMode().isBlank()) {
+            ConsultationMode sent;
+            try {
+                sent = ConsultationMode.valueOf(body.consultationMode().trim().toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                throw ApiException.badRequest("Invalid consultationMode (use IN_CLINIC or VIDEO)");
+            }
+            if (sent != fixed) {
+                throw ApiException.badRequest("Slot does not match the selected consultation mode");
+            }
+        }
+        return fixed;
+    }
+
+    private static void assertDoctorOffersMode(Doctor doctor, ConsultationMode mode) {
+        if (mode == ConsultationMode.IN_CLINIC && !doctor.isOffersInClinic()) {
+            throw ApiException.badRequest("This doctor is not accepting in-clinic visits");
+        }
+        if (mode == ConsultationMode.VIDEO && !doctor.isOffersVideo()) {
+            throw ApiException.badRequest("This doctor is not accepting video consultations");
+        }
     }
 
     private Patient patientOrThrow(User user) {

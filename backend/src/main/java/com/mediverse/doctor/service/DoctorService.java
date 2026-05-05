@@ -4,6 +4,7 @@ import com.mediverse.auth.dto.UserDto;
 import com.mediverse.common.api.ApiException;
 import com.mediverse.doctor.domain.DoctorAvailability;
 import com.mediverse.doctor.domain.ScheduleDay;
+import com.mediverse.doctor.domain.ConsultationMode;
 import com.mediverse.doctor.domain.TimeSlot;
 import com.mediverse.doctor.dto.DoctorAvailabilityRuleDto;
 import com.mediverse.doctor.dto.DoctorDashboardStatsDto;
@@ -37,12 +38,16 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DoctorService {
@@ -144,6 +149,7 @@ public class DoctorService {
         }
 
         applyPracticeLocation(d, req);
+        applyConsultationOfferToggles(d, req);
 
         doctorRepository.save(d);
         return toPublicDto(d);
@@ -173,13 +179,16 @@ public class DoctorService {
     @Transactional
     public DoctorAvailabilityRuleDto addAvailabilityRule(User user, UpsertAvailabilityRequest req) {
         Doctor d = doctorFor(user);
+        assertDoctorAllowsMode(d, req.consultationMode());
         validateWindow(req.startTime(), req.endTime());
-        assertNoOverlappingRules(d.getId(), req.dayOfWeek(), req.startTime(), req.endTime(), null);
+        deactivateOverlappingSameModeRules(
+                d.getId(), req.dayOfWeek(), req.consultationMode(), req.startTime(), req.endTime(), null);
 
         DoctorAvailability saved =
                 availabilityRepository.save(
                         DoctorAvailability.builder()
                                 .doctor(d)
+                                .consultationMode(req.consultationMode())
                                 .dayOfWeek(req.dayOfWeek())
                                 .startTime(req.startTime())
                                 .endTime(req.endTime())
@@ -187,6 +196,7 @@ public class DoctorService {
                                 .requiresApproval(req.requiresApproval())
                                 .active(true)
                                 .build());
+        availabilityRepository.flush();
 
         slotGenerationService.regenerateSlotsForDoctor(d.getId());
         return toRuleDto(saved);
@@ -201,9 +211,12 @@ public class DoctorService {
                         .filter(r -> r.getDoctor().getId().equals(d.getId()))
                         .orElseThrow(() -> ApiException.notFound("Availability rule not found"));
 
+        assertDoctorAllowsMode(d, req.consultationMode());
         validateWindow(req.startTime(), req.endTime());
-        assertNoOverlappingRules(d.getId(), req.dayOfWeek(), req.startTime(), req.endTime(), ruleId);
+        deactivateOverlappingSameModeRules(
+                d.getId(), req.dayOfWeek(), req.consultationMode(), req.startTime(), req.endTime(), ruleId);
 
+        rule.setConsultationMode(req.consultationMode());
         rule.setDayOfWeek(req.dayOfWeek());
         rule.setStartTime(req.startTime());
         rule.setEndTime(req.endTime());
@@ -211,6 +224,7 @@ public class DoctorService {
         rule.setRequiresApproval(req.requiresApproval());
 
         availabilityRepository.save(rule);
+        availabilityRepository.flush();
         slotGenerationService.regenerateSlotsForDoctor(d.getId());
         return toRuleDto(rule);
     }
@@ -224,8 +238,32 @@ public class DoctorService {
                         .filter(r -> r.getDoctor().getId().equals(d.getId()))
                         .orElseThrow(() -> ApiException.notFound("Availability rule not found"));
 
+        Long doctorId = d.getId();
         availabilityRepository.delete(rule);
-        slotGenerationService.regenerateSlotsForDoctor(d.getId());
+        // Regenerate runs after commit so a slot-regeneration failure cannot roll back the delete.
+        scheduleRegenerateSlotsAfterCommit(doctorId);
+    }
+
+    private void scheduleRegenerateSlotsAfterCommit(Long doctorId) {
+        Runnable regen =
+                () -> {
+                    try {
+                        slotGenerationService.regenerateSlotsForDoctor(doctorId);
+                    } catch (Exception ex) {
+                        log.warn("Slot regeneration failed after availability delete for doctor {}", doctorId, ex);
+                    }
+                };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            regen.run();
+                        }
+                    });
+        } else {
+            regen.run();
+        }
     }
 
     /**
@@ -234,16 +272,19 @@ public class DoctorService {
      * delete/recreate rows — stable {@link TimeSlot} ids are required for {@code POST /appointments}.
      */
     @Transactional
-    public List<TimeSlotItemDto> listFreeSlots(Long doctorId, LocalDate date) {
+    public List<TimeSlotItemDto> listFreeSlots(Long doctorId, LocalDate date, ConsultationMode consultationMode) {
         Doctor d = doctorRepository.findById(doctorId).orElseThrow(() -> ApiException.notFound("Doctor not found"));
         if (!(d.isVerified() && d.getVerificationStatus() == VerificationStatus.APPROVED)) {
             throw ApiException.notFound("Doctor not found");
         }
 
+        assertDoctorAllowsMode(d, consultationMode);
+
         slotGenerationService.ensureSlotsForRollingWindow(doctorId);
 
         List<TimeSlot> slots =
-                timeSlotRepository.findByDoctor_IdAndSlotDateAndBookedFalseOrderByStartTimeAsc(doctorId, date);
+                timeSlotRepository.findByDoctor_IdAndSlotDateAndBookedFalseAndConsultationModeInOrderByStartTimeAsc(
+                        doctorId, date, List.of(consultationMode));
         return slots.stream().map(this::toSlotDto).collect(Collectors.toList());
     }
 
@@ -268,6 +309,7 @@ public class DoctorService {
         return new DoctorAvailabilityRuleDto(
                 rule.getId(),
                 rule.getDayOfWeek(),
+                rule.getConsultationMode(),
                 rule.getStartTime(),
                 rule.getEndTime(),
                 rule.getSlotDurationMinutes(),
@@ -281,7 +323,8 @@ public class DoctorService {
                 slot.getSlotDate(),
                 slot.getStartTime(),
                 slot.getEndTime(),
-                slot.isRequiresApproval());
+                slot.isRequiresApproval(),
+                slot.getConsultationMode().name());
     }
 
     private DoctorSummaryDto toSummary(Doctor doctor, List<DoctorAvailability> activeRulesForDoctor) {
@@ -311,7 +354,10 @@ public class DoctorService {
                 sb.append(" · ");
             }
             String day =
-                    r.getDayOfWeek().toDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+                    r.getDayOfWeek().toDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
+                            + '('
+                            + availabilityModeAbbrev(r.getConsultationMode())
+                            + ')';
             sb.append(day)
                     .append(' ')
                     .append(clock.format(r.getStartTime()))
@@ -345,7 +391,54 @@ public class DoctorService {
                 d.getPracticePlaceId(),
                 d.getLanguages(),
                 d.getVerificationStatus(),
-                d.isVerified());
+                d.isVerified(),
+                d.isOffersInClinic(),
+                d.isOffersVideo());
+    }
+
+    private static void assertDoctorAllowsMode(Doctor d, ConsultationMode mode) {
+        if (mode == ConsultationMode.IN_CLINIC && !d.isOffersInClinic()) {
+            throw ApiException.badRequest("This doctor is not accepting in-clinic visits");
+        }
+        if (mode == ConsultationMode.VIDEO && !d.isOffersVideo()) {
+            throw ApiException.badRequest("This doctor is not accepting video consultations");
+        }
+    }
+
+    private void applyConsultationOfferToggles(Doctor d, UpdateDoctorProfileRequest req) {
+        boolean regen = false;
+        if (Boolean.FALSE.equals(req.offersVideo())) {
+            deactivateRulesForMode(d.getId(), ConsultationMode.VIDEO);
+            regen = true;
+        }
+        if (Boolean.FALSE.equals(req.offersInClinic())) {
+            deactivateRulesForMode(d.getId(), ConsultationMode.IN_CLINIC);
+            regen = true;
+        }
+        if (req.offersInClinic() != null) {
+            d.setOffersInClinic(req.offersInClinic());
+        }
+        if (req.offersVideo() != null) {
+            d.setOffersVideo(req.offersVideo());
+        }
+        if (!d.isOffersInClinic() && !d.isOffersVideo()) {
+            throw ApiException.badRequest("At least one of in-clinic or video must be enabled");
+        }
+        if (regen) {
+            doctorRepository.flush();
+            slotGenerationService.regenerateSlotsForDoctor(d.getId());
+        }
+    }
+
+    private void deactivateRulesForMode(long doctorId, ConsultationMode mode) {
+        List<DoctorAvailability> rules = availabilityRepository.findByDoctor_IdAndConsultationMode(doctorId, mode);
+        if (rules.isEmpty()) {
+            return;
+        }
+        for (DoctorAvailability r : rules) {
+            r.setActive(false);
+        }
+        availabilityRepository.saveAll(rules);
     }
 
     private static void applyPracticeLocation(Doctor d, UpdateDoctorProfileRequest req) {
@@ -378,20 +471,45 @@ public class DoctorService {
             throw ApiException.badRequest("start_time must be before end_time");
         }
     }
-    private void assertNoOverlappingRules(
-            long doctorId, ScheduleDay day, LocalTime start, LocalTime end, Long excludeRuleId) {
-        availabilityRepository.findByDoctor_IdOrderByDayOfWeekAscStartTimeAsc(doctorId).stream()
-                .filter(r -> r.getDayOfWeek() == day && r.isActive())
-                .filter(r -> excludeRuleId == null || !excludeRuleId.equals(r.getId()))
-                .filter(r -> overlaps(start, end, r.getStartTime(), r.getEndTime()))
-                .findFirst()
-                .ifPresent(r -> {
-                    throw ApiException.conflict("Overlaps existing availability rule for that weekday");
-                });
+
+    /**
+     * Archives (deactivates) any active rule of the same visit type on the same weekday that overlaps the
+     * window being saved, so doctors can replace hours without a 409. In-clinic and video rules may still
+     * overlap in time (parallel capacity).
+     */
+    private void deactivateOverlappingSameModeRules(
+            long doctorId,
+            ScheduleDay day,
+            ConsultationMode mode,
+            LocalTime start,
+            LocalTime end,
+            Long excludeRuleId) {
+        List<DoctorAvailability> victims =
+                availabilityRepository.findByDoctor_IdOrderByDayOfWeekAscStartTimeAsc(doctorId).stream()
+                        .filter(r -> r.getDayOfWeek() == day && r.isActive())
+                        .filter(r -> r.getConsultationMode() == mode)
+                        .filter(r -> excludeRuleId == null || !excludeRuleId.equals(r.getId()))
+                        .filter(r -> overlaps(start, end, r.getStartTime(), r.getEndTime()))
+                        .toList();
+        if (victims.isEmpty()) {
+            return;
+        }
+        for (DoctorAvailability r : victims) {
+            r.setActive(false);
+        }
+        availabilityRepository.saveAll(victims);
+        availabilityRepository.flush();
     }
 
     private static boolean overlaps(LocalTime s1, LocalTime e1, LocalTime s2, LocalTime e2) {
         return s1.isBefore(e2) && s2.isBefore(e1);
+    }
+
+    private static String availabilityModeAbbrev(ConsultationMode m) {
+        return switch (m) {
+            case IN_CLINIC -> "CLINIC";
+            case VIDEO -> "VIDEO";
+        };
     }
 
     private static String blankToNull(String s) {

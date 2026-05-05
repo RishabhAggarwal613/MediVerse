@@ -21,7 +21,14 @@ import { getBookingHorizonDays } from "@/lib/env";
 import { googleMapsDirectionsUrl } from "@/lib/maps-links";
 import { localDateInputValue } from "@/lib/date";
 import type { AppointmentDto } from "@/types/appointments";
-import type { DoctorAvailabilityRuleDto, TimeSlotItemDto } from "@/types/doctors";
+import type {
+  ConsultationMode,
+  DoctorAvailabilityRuleDto,
+  TimeSlotItemDto,
+} from "@/types/doctors";
+
+/** Patient browse tab — flexible slots load with both filters. */
+type VisitTypeFilter = "IN_CLINIC" | "VIDEO";
 
 function padTime(isoLike: string) {
   if (!isoLike) return "";
@@ -50,6 +57,11 @@ function formatLongWeekday(dateYmd: string) {
 
 function bookingModeLabel(slot: Pick<TimeSlotItemDto, "requiresApproval">) {
   return slot.requiresApproval ? "Doctor review required" : "Instant confirmation";
+}
+
+function visitTypeShort(mode: ConsultationMode) {
+  if (mode === "VIDEO") return "Video";
+  return "In-clinic";
 }
 
 function BookingConfirmDialog({
@@ -113,8 +125,12 @@ function BookingConfirmDialog({
             {padTime(slot.startTime)} – {padTime(slot.endTime)}
           </li>
           <li>
-            <span className="text-muted-foreground">Type</span>:{" "}
+            <span className="text-muted-foreground">Booking</span>:{" "}
             {bookingModeLabel(slot)}
+          </li>
+          <li>
+            <span className="text-muted-foreground">Visit type</span>:{" "}
+            {visitTypeShort(slot.consultationMode)}
           </li>
           {reasonTrimmed ? (
             <li>
@@ -156,6 +172,7 @@ export default function PatientDoctorDetailPage() {
   const [date, setDate] = useState("");
   const [reason, setReason] = useState("");
   const [pickedSlot, setPickedSlot] = useState<TimeSlotItemDto | null>(null);
+  const [bookingMode, setBookingMode] = useState<VisitTypeFilter>("IN_CLINIC");
 
   useEffect(() => {
     setDate(localDateInputValue());
@@ -166,6 +183,17 @@ export default function PatientDoctorDetailPage() {
     queryFn: () => fetchDoctorPublic(id),
     enabled: Number.isFinite(id),
   });
+
+  useEffect(() => {
+    if (!doctor) return;
+    if (doctor.offersInClinic && !doctor.offersVideo) {
+      setBookingMode("IN_CLINIC");
+    } else if (!doctor.offersInClinic && doctor.offersVideo) {
+      setBookingMode("VIDEO");
+    } else {
+      setBookingMode("IN_CLINIC");
+    }
+  }, [doctor]);
 
   const { data: avail } = useQuery({
     queryKey: ["doctor", id, "availability"],
@@ -178,8 +206,8 @@ export default function PatientDoctorDetailPage() {
     data: slots,
     isFetching: slotsFetching,
   } = useQuery({
-    queryKey: ["doctor", id, "slots", dateForSlots],
-    queryFn: () => fetchDoctorSlots(id, dateForSlots),
+    queryKey: ["doctor", id, "slots", dateForSlots, bookingMode],
+    queryFn: () => fetchDoctorSlots(id, dateForSlots, bookingMode),
     enabled:
       Number.isFinite(id) && dateForSlots.length === 10 && dateForSlots >= today && dateForSlots <= lastBookableDay,
   });
@@ -191,16 +219,21 @@ export default function PatientDoctorDetailPage() {
   const bookMut = useMutation<
     AppointmentDto,
     unknown,
-    { slotId: number; reason?: string },
+    { slotId: number; reason?: string; consultationMode: VisitTypeFilter },
     unknown
   >({
-    mutationFn: ({ slotId, reason: r }: { slotId: number; reason?: string }) =>
-      bookAppointment({ slotId, reason: r }),
+    mutationFn: ({
+      slotId,
+      reason: r,
+      consultationMode: cm,
+    }: {
+      slotId: number;
+      reason?: string;
+      consultationMode: VisitTypeFilter;
+    }) => bookAppointment({ slotId, reason: r, consultationMode: cm }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      void queryClient.invalidateQueries({
-        queryKey: ["doctor", id, "slots", dateForSlots],
-      });
+      void queryClient.invalidateQueries({ queryKey: ["doctor", id, "slots"] });
       setPickedSlot(null);
     },
   });
@@ -211,7 +244,7 @@ export default function PatientDoctorDetailPage() {
   useEffect(() => {
     setPickedSlot(null);
     bookMutRef.current.reset();
-  }, [date, id]);
+  }, [date, id, bookingMode]);
 
   const reasonTrimmed = reason.trim().slice(0, 500) || null;
 
@@ -305,6 +338,7 @@ export default function PatientDoctorDetailPage() {
           bookMut.mutate({
             slotId: pickedSlot.id,
             reason: reasonTrimmed ?? undefined,
+            consultationMode: pickedSlot.consultationMode,
           });
         }}
       />
@@ -363,7 +397,7 @@ export default function PatientDoctorDetailPage() {
             <p className="mt-8 text-sm leading-relaxed text-foreground/90">{doctor.bio}</p>
           )}
 
-          {directionsUrl && (
+          {directionsUrl && doctor.offersInClinic && (
             <section className="mt-8 rounded-2xl border border-teal-200/50 bg-teal-50/50 p-5 dark:border-teal-900/40 dark:bg-teal-950/25">
               <h2 className="text-lg font-semibold">Practice location</h2>
               {doctor.practiceAddressFormatted && (
@@ -394,6 +428,9 @@ export default function PatientDoctorDetailPage() {
                 >
                   <span className="font-medium">{row.dayOfWeek}</span>
                   <span className="text-muted-foreground">
+                    <span className="mr-1 font-medium text-foreground/80">
+                      ({visitTypeShort(row.consultationMode)})
+                    </span>
                     {padTime(row.startTime)} – {padTime(row.endTime)} · Slot {row.slotDurationMinutes}{" "}
                     min
                     {row.requiresApproval ? (
@@ -427,6 +464,40 @@ export default function PatientDoctorDetailPage() {
               your request first.
             </p>
             <div className="mt-4 grid gap-4 sm:max-w-xl sm:grid-cols-2">
+              {doctor.offersInClinic && doctor.offersVideo ? (
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Visit type</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={bookingMode === "IN_CLINIC" ? "default" : "outline"}
+                      className="rounded-full"
+                      onClick={() => setBookingMode("IN_CLINIC")}
+                    >
+                      In-clinic
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={bookingMode === "VIDEO" ? "default" : "outline"}
+                      className="rounded-full"
+                      onClick={() => setBookingMode("VIDEO")}
+                    >
+                      Video
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Open times below are only for the selected visit type.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground sm:col-span-2">
+                  {doctor.offersVideo && !doctor.offersInClinic
+                    ? "This doctor offers video consultations only."
+                    : "This doctor offers in-clinic visits only."}
+                </p>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
                 <Input
