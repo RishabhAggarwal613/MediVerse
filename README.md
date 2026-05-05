@@ -1,61 +1,111 @@
 # MediVerse
 
-A medical platform that connects **Patients** and **Doctors**, with AI-powered health assistance and automated medical-report analysis.
+**MediVerse** is a full-stack healthcare web app that connects **patients** and **verified doctors**. Patients can browse doctors, book visits, chat with an **AI Health Assistant** (guardrailed Gemini), upload **lab reports** for AI-assisted analysis (vision), and open **directions** to a doctor’s clinic when location is set. Doctors manage profile, weekly **availability**, **practice address** (optional Google Places + map + device location), and the full **appointment** lifecycle—with email notifications throughout.
 
-> - System design → [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
-> - User journeys & UX → [`docs/WORKFLOWS.md`](./docs/WORKFLOWS.md)
-> - One-page orientation → [`docs/PROJECT_OVERVIEW.md`](./docs/PROJECT_OVERVIEW.md)
+There is **no separate product “admin” role** in the database. Doctor license review is done through a small **`/admin/verifications`** area, gated by an **email allowlist** in configuration.
 
 ---
 
-## Repository Layout
+## Documentation map
+
+| Doc | Contents |
+|-----|----------|
+| [**`docs/ARCHITECTURE.md`**](./docs/ARCHITECTURE.md) | Database schema (Flyway), REST API tables, packages, security, env reference |
+| [**`docs/WORKFLOWS.md`**](./docs/WORKFLOWS.md) | Screen-by-screen journeys and locked UX/product decisions |
+| [**`docs/PROJECT_OVERVIEW.md`**](./docs/PROJECT_OVERVIEW.md) | Single-file narrative of stack, topology, roles, and flows |
+| [**`memory-bank/progress.md`**](./memory-bank/progress.md) | Phase checklist, incremental features (practice location V9, etc.) |
+| [**`memory-bank/techContext.md`**](./memory-bank/techContext.md) | Versions, ports, test profile notes |
+
+---
+
+## What the app does
+
+### Patients
+
+| Area | What happens |
+|------|----------------|
+| **Find a doctor** | Search and filter verified doctors; open a profile with availability summary and fees. |
+| **Book appointments** | Pick a free slot inside the server-defined horizon; bookings can be **instant** or **pending approval** per doctor rules. **Navigate** opens Google Maps directions when the doctor saved practice coordinates or address. |
+| **Appointments** | List upcoming/past bookings; cancel within the **2-hour** pre-visit window (server-enforced). |
+| **AI Health Assistant** | Session-based chat with Gemini; system prompt enforces “no diagnosis / no prescriptions” and similar guardrails. |
+| **AI report scan** | Upload PDF or image; backend stores in **S3**, calls **Gemini Vision**, saves structured summary/findings; optional **share with one doctor** for read-only access on the doctor side. |
+| **Profile & onboarding** | Profile fields, avatar upload, onboarding checklist until key steps are complete. |
+
+### Doctors
+
+| Area | What happens |
+|------|----------------|
+| **Profile** | Specialization, bio, fees, languages, practice city; **street / clinic location** via text, **Places** suggestions, **map** pin (click/drag), or **Use current location** when a Maps browser key is configured. |
+| **Availability** | Weekly rules and slot duration; hybrid **requires approval** flag; generated **time slots** for the booking window. |
+| **Appointments** | See patient bookings; **approve** / **reject** pending requests; **complete** visits with optional note; dashboard **stats**. |
+| **Shared reports** | Read AI reports only when the patient explicitly shared them with you. |
+
+### Operators (verification)
+
+Emails listed in **`ADMIN_EMAILS`** can open **`/admin/verifications`**, review pending doctors (license upload), and **approve** or **reject** (with optional reason email). This is operational access only—not a persisted `ADMIN` role.
+
+---
+
+## Architecture at a glance
+
+- **Monorepo:** `backend/` (Spring Boot **3.5**, **Java 21**) + `frontend/` (**Next.js 14** App Router, **TypeScript**, **Tailwind**, **shadcn/ui**).
+- **API:** JSON REST; every response uses **`ApiResponse<T>`**; domain errors use stable **`ApiException`** codes (see **`docs/ARCHITECTURE.md`**).
+- **Auth:** **JWT** access + opaque **refresh** (rotated); optional **Google OAuth2** code flow; Spring Security protects `/api/**` with role checks.
+- **Data:** **MySQL 8** on the **host** in local dev (**not** started by Compose). **Flyway** migrations under `backend/src/main/resources/db/migration/`.
+- **Files:** **AWS S3** (avatars, doctor license docs, AI report blobs). Local/dev can use filesystem storage depending on config.
+- **Email:** **Spring Mail**; local dev typically uses **MailHog** (Docker).
+
+---
+
+## Repository layout
 
 ```
 MediVerse/
-├── backend/             # Spring Boot 3.5 (Java 21) — modular monolith
-├── frontend/            # Next.js 14 (App Router) + TypeScript + Tailwind
-├── docker-compose.yml   # MySQL 8 + MailHog (local dev)
+├── backend/                 # Spring Boot API, Flyway, tests
+├── frontend/                # Next.js app (marketing + patient + doctor + admin gate)
+├── docker-compose.yml       # MailHog only (SMTP 1025, UI 8025)
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── WORKFLOWS.md
 │   └── PROJECT_OVERVIEW.md
-├── .env.example         # copy to .env and fill in
-├── .gitignore
+├── memory-bank/             # Session-oriented project state for contributors/agents
+├── .env.example             # Template — copy to repo-root .env
+├── AGENTS.md                # Short pointers for AI coding agents
 └── README.md
 ```
 
 ---
 
-## Tech Stack
+## Tech stack (summary)
 
-- **Frontend** — Next.js 14, TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, Zustand, React Hook Form + Zod, Axios; optional **`@googlemaps/js-api-loader`** on doctor profile when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is set
-- **Backend** — Spring Boot 3.5, Spring Security 6, Spring Data JPA, Flyway, springdoc-openapi
-- **Auth** — JWT (access + refresh) + Google OAuth2
-- **Database** — MySQL 8
-- **Storage** — AWS S3 (SDK v2)
-- **AI** — Google Gemini (chat + vision models configured in `.env`, e.g. `gemini-2.5-flash` / `gemini-2.5-pro`)
-- **Email** — Spring Mail / SMTP (MailHog locally)
+| Layer | Choices |
+|-------|---------|
+| **UI** | Next.js 14, React, Tailwind, shadcn/ui, TanStack Query, Zustand, RHF + Zod, Axios |
+| **Maps (optional)** | `@googlemaps/js-api-loader` v2 — Places + map + geocoder on **doctor profile** when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is set |
+| **API** | Spring Boot 3.5, Spring Security 6, JPA/Hibernate, springdoc-openapi (Swagger UI) |
+| **DB** | MySQL 8 + Flyway |
+| **AI** | Google Generative Language API (Gemini) — chat + vision models via `.env` (defaults in `application.yml`, e.g. `gemini-2.5-flash` / `gemini-2.5-pro`) |
+| **Storage** | AWS SDK v2 (S3) |
+| **Mail** | Spring Mail + Thymeleaf HTML templates |
 
 ---
 
 ## Prerequisites
 
-- Java 21
-- Maven 3.8+
-- Node.js 20+
-- Docker + Docker Compose
-- An AWS account + S3 bucket *(for file uploads — Phase 2 onwards)*
-- Google OAuth2 Client *(for social login — Phase 2 onwards)*
-- **Optional:** Google Maps **Maps JavaScript API** browser key *(doctor profile — Places autocomplete + map pin + geolocation; see `.env.example`)*
-- Gemini API key *(for AI features — Phases 6 & 7)*
+- **Java 21**, **Maven 3.8+** (this repo uses system `mvn`, no committed wrapper)
+- **Node.js 20+**
+- **Docker** + **Docker Compose** (for MailHog)
+- **MySQL 8** installed on the host
+- **AWS S3** credentials and bucket (for uploads in real use)
+- **Google OAuth** client (optional but recommended for “Sign in with Google”)
+- **Gemini API key** (for AI chat + report scanning)
+- **Optional:** Google Cloud **Maps JavaScript API** key with **Places** (doctor address picker)
 
 ---
 
-## Quick Start (Phase 0 sanity check)
+## Quick start (local)
 
-### 1. Database (host-installed MySQL)
-
-This project uses your **host's MySQL** (not a container). One-time setup:
+### 1. Create the MySQL database and user
 
 ```sql
 CREATE DATABASE mediverse CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -64,134 +114,97 @@ GRANT ALL PRIVILEGES ON mediverse.* TO 'mediverse'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-Run it via:
+One-line variant:
+
 ```bash
 mysql -u root -p < <(echo "CREATE DATABASE IF NOT EXISTS mediverse; CREATE USER IF NOT EXISTS 'mediverse'@'localhost' IDENTIFIED BY 'mediversepass'; GRANT ALL ON mediverse.* TO 'mediverse'@'localhost'; FLUSH PRIVILEGES;")
 ```
 
-### 2. Bring up MailHog (email catcher for dev)
+### 2. Configure environment
 
 ```bash
 cp .env.example .env
+# Edit .env: DB_*, JWT_SECRET, AWS_*, GEMINI_*, MAIL_*, optional GOOGLE_*, ADMIN_EMAILS, etc.
+```
+
+Duplicate any **`NEXT_PUBLIC_*`** keys you need into **`frontend/.env.local`**. Next.js loads public env from the **`frontend/`** working directory when you run `npm run dev` there—the repo-root `.env` alone does not inject those into the browser bundle.
+
+### 3. Start MailHog
+
+```bash
 docker compose up -d
 ```
 
-- MailHog SMTP → `localhost:1025`, web UI → http://localhost:8025
+- SMTP: `localhost:1025` — Web UI: http://localhost:8025
 
-### 3. Run the backend
+### 4. Run the backend
 
 ```bash
 cd backend
 mvn spring-boot:run
 ```
 
-Backend → http://localhost:8080  
-OpenAPI / Swagger UI → http://localhost:8080/swagger-ui.html  
-Health (includes whether Google OAuth env is wired) → http://localhost:8080/api/health
+- API: http://localhost:8080  
+- Health: http://localhost:8080/api/health (includes `googleOAuthAvailable` when OAuth env is set)  
+- Swagger UI: http://localhost:8080/swagger-ui.html  
 
-### 4. Run the frontend
+The JVM loads the **repo-root `.env`** via **`DotenvBootstrap`** when keys are missing from the environment (see **`docs/ARCHITECTURE.md`**).
+
+### 5. Run the frontend
 
 ```bash
 cd frontend
-npm install   # first clone / after dependency changes
+npm install
 npm run dev
 ```
 
-Frontend → http://localhost:3000
-
-**Production-like env for Next:** public variables (`NEXT_PUBLIC_*`) are read from **`frontend/.env.local`** when you run **`npm run dev`** from **`frontend/`**. Keeping a copy of those lines in the repo-root **`.env`** is fine for editors and backend tooling, but **Next only auto-loads files under `frontend/`** unless you duplicate the keys — see **`.env.example`**.
+- App: http://localhost:3000  
 
 ---
 
-## Patient navigation (practice location)
+## Environment variables (overview)
 
-When a doctor saves a **pinned practice address** (coordinates and/or formatted address) on **`/doctor/profile`**, patients see **Navigate** on **`/patient/appointments`** and **Navigate in Maps** on the home **Next appointment** card. Links open **`google.com/maps`** directions (**no frontend Maps API usage**).
+Authoritative key list and comments: **`.env.example`**.
 
----
+**Backend (repo-root `.env` or OS env):** `DB_URL` / `DB_USER` / `DB_PASSWORD`, `JWT_SECRET`, `AWS_*`, `GEMINI_API_KEY` and model names, `MAIL_*`, `CORS_ALLOWED_ORIGINS`, `ADMIN_EMAILS`, `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, optional `APPT_*` horizon/window overrides.
 
-## Doctor verification (admin)
-
-v1 does **not** define a dedicated `ADMIN` user role. A **comma-separated allowlist** in repo-root `.env` — **`ADMIN_EMAILS`** (backend: `mediverse.admin.emails`) — marks accounts that may use the verification queue. After signing in as an allowlisted user, open **http://localhost:3000/admin/verifications** (also linked from the main nav when `user.admin` is true).
-
-Backend routes (JWT required; 403 if not allowlisted):
-
-| Method | Path |
-|--------|------|
-| GET | `/api/admin/doctors/pending` |
-| POST | `/api/admin/doctors/{doctorId}/approve` |
-| POST | `/api/admin/doctors/{doctorId}/reject` (JSON body: optional `reason`) |
-
-Patient and doctor areas also show **onboarding** checklists and **email / license** banners where applicable.
-
----
-
-## Build Phases
-
-Phases **0–8** are implemented. Status detail lives in **`memory-bank/progress.md`**.
-
-| Phase | Goal |
-|-------|------|
-| **0** ✅ | Workspace bootstrap |
-| **1** ✅ | Backend foundation — config, security, CORS, OpenAPI, `ApiResponse`, `/api/health` |
-| **2** ✅ | Auth & Users — registration, JWT, Google OAuth, profile |
-| **3** ✅ | Frontend foundation — axios, auth store, login/register |
-| **4** ✅ | Doctor module — profile, search, availability, slots |
-| **5** ✅ | Appointments — booking, email, dashboards |
-| **6** ✅ | AI Health Assistant — Gemini chat |
-| **7** ✅ | AI Report Scanning — Vision, share with doctor |
-| **8** ✅ | Polish — admin verifications, onboarding, banners, profiles/theme + **practice location / patient Navigate** (see **`memory-bank/progress.md`**) |
-
-See **`docs/ARCHITECTURE.md`** for the full design (DB schema, API surface, package layout, security model).
-
----
-
-## Environment Variables
-
-All env vars live in `.env` (which is **gitignored**). Use `.env.example` as a template.
-
-Backend variables are read from `application.yml` via `${VAR:default}` placeholders. **The JVM does not read a `.env` file by itself** — this project calls `DotenvBootstrap` at startup to load the first `.env` found walking up from the working directory (so `mvn spring-boot:run` from `backend/` still picks up the **repo root** `.env`) into system properties for unset keys. OS environment variables and `-D` flags still win. Use `.env.example` as a template.
-
-### Frontend (Next.js public env)
-
-In addition to `NEXT_PUBLIC_API_BASE_URL` and `NEXT_PUBLIC_GOOGLE_OAUTH_URL`, you can set:
+**Frontend (`frontend/.env.local` recommended):**
 
 | Variable | Purpose |
 |----------|---------|
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional — doctor **`/doctor/profile`** street picker (Places + embedded map + reverse geocode + **Use current location**). Enable **Maps JavaScript API**, **Places API**, and billing on the GCP key; restrict HTTP referrers in production. |
+| `NEXT_PUBLIC_API_BASE_URL` | API base, default `http://localhost:8080/api` |
+| `NEXT_PUBLIC_GOOGLE_OAUTH_URL` | Start URL for Google sign-in |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional — doctor profile address UI (Maps + Places + geocoding) |
+| `NEXT_PUBLIC_BOOKING_HORIZON_DAYS` | Optional — keep in sync with backend booking horizon for date pickers |
 
-Place this in **`frontend/.env.local`** (gitignored template pattern `*.env*.local`). See **`docs/ARCHITECTURE.md`** (env / practice location subsection) for nuance.
-
-### Google sign-in (OAuth)
-
-The **Sign in with Google** button only works when the backend loads the OAuth2 client — `GET /api/health` returns `data.googleOAuthAvailable: true` when both secrets are wired. Configure **either**:
-
-1. **`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`** in repo-root `.env` (recommended locally), **or**
-2. **Export** them in the shell / IDE Run Configuration before starting the API **or**
-3. **Pass `-DGOOGLE_CLIENT_ID=...`** on the command line.
-
-| Variable | Purpose |
-|----------|---------|
-| `GOOGLE_CLIENT_ID` | Web client ID from [Google Cloud Console](https://console.cloud.google.com/apis/credentials) |
-| `GOOGLE_CLIENT_SECRET` | Client secret for the same OAuth 2.0 client |
-
-In **Google Cloud Console**, add this **Authorized redirect URI** for local dev:
-
-`http://localhost:8080/login/oauth2/code/google`
-
-After setting variables, restart the backend. `GET /api/health` returns `data.googleOAuthAvailable: true` when Google OAuth is wired; the frontend uses that to show the Google button vs. a setup hint.
-
-### Admin allowlist (`ADMIN_EMAILS`)
-
-Set **`ADMIN_EMAILS`** in `.env` to a comma-separated list of emails that may access **`/admin/verifications`** and the admin API (see **Doctor verification (admin)** above). Matches **`mediverse.admin.emails`** in Spring.
+**Google OAuth redirect (local):** add  
+`http://localhost:8080/login/oauth2/code/google`  
+as an authorized redirect URI in Google Cloud Console.
 
 ---
 
-## Verify (tests & build)
+## Product rules (short)
+
+Concrete numbers and UX decisions (cancellation window, booking horizon, dashboard layout) live in **`docs/WORKFLOWS.md`** (“Decisions snapshot”). Common ones:
+
+- **Booking horizon:** default **7 days** ahead (server is source of truth).
+- **Patient cancel:** allowed until **2 hours** before `scheduled_at`.
+- **AI:** no streaming in v1; chat and vision return full responses; guardrails in prompts—not a substitute for clinical care.
+
+---
+
+## Verify (build & tests)
 
 ```bash
 cd backend && mvn test
 cd frontend && npm run build && npm run lint
 ```
+
+---
+
+## Not in scope for v1
+
+No payments, telemedicine/video, prescriptions, peer reviews, streaming LLM tokens, i18n, or native mobile apps—see **`docs/ARCHITECTURE.md`** §15 and **`memory-bank/productContext.md`**.
 
 ---
 
