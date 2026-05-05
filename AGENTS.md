@@ -12,6 +12,7 @@ MediVerse. The detailed canon is elsewhere; this file just tells you where.
 3. **`docs/WORKFLOWS.md`** — every user journey, with locked product
    decisions captured in the "Decisions snapshot" table at the top.
 4. **`README.md`** — quick-start commands.
+5. **`docs/PROJECT_OVERVIEW.md`** — single-file orientation snapshot (links to ARCHITECTURE / WORKFLOWS for depth).
 
 ## Project shape
 
