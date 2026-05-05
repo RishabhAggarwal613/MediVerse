@@ -9,6 +9,7 @@ import {
   Bot,
   CalendarClock,
   FileSearch,
+  Navigation,
   ShieldCheck,
   Sparkles,
   Stethoscope,
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
 import { fetchMyAppointments } from "@/lib/api/appointments";
+import { googleMapsDirectionsUrl } from "@/lib/maps-links";
 import type { AppointmentDto } from "@/types/appointments";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -131,6 +133,15 @@ export default function PatientHomePage() {
     [apptsQ.data],
   );
 
+  const nextApptNavigateHref = useMemo(() => {
+    if (!nextAppt) return null;
+    return googleMapsDirectionsUrl({
+      latitude: nextAppt.practiceLatitude ?? null,
+      longitude: nextAppt.practiceLongitude ?? null,
+      address: nextAppt.practiceAddressFormatted ?? null,
+    });
+  }, [nextAppt]);
+
   const apptLoading = apptsQ.isPending;
 
   return (
@@ -192,9 +203,24 @@ export default function PatientHomePage() {
                         </span>
                       )}
                     </p>
-                    <Button asChild variant="outline" size="sm" className="mt-5">
-                      <Link href={`/patient/appointments`}>Open appointments →</Link>
-                    </Button>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {nextApptNavigateHref && (
+                        <Button asChild variant="outline" size="sm" className="rounded-full">
+                          <a
+                            href={nextApptNavigateHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5"
+                          >
+                            <Navigation className="h-4 w-4 shrink-0" aria-hidden />
+                            Navigate in Maps
+                          </a>
+                        </Button>
+                      )}
+                      <Button asChild variant="outline" size="sm" className="rounded-full">
+                        <Link href="/patient/appointments">Open appointments →</Link>
+                      </Button>
+                    </div>
                   </>
                 )}
                 {!apptLoading && !nextAppt && (

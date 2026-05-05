@@ -1,5 +1,7 @@
 package com.mediverse.appointment.dto;
 
+import java.math.BigDecimal;
+
 public record AppointmentDto(
         Long id,
         String status,
@@ -12,4 +14,8 @@ public record AppointmentDto(
         String patientEmail,
         String doctorEmail,
         String reason,
-        String doctorNote) {}
+        String doctorNote,
+        /** Doctor practice street / clinic address for patient navigation — optional. */
+        String practiceAddressFormatted,
+        BigDecimal practiceLatitude,
+        BigDecimal practiceLongitude) {}

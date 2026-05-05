@@ -143,6 +143,8 @@ public class DoctorService {
             d.setLanguages(langs.isBlank() ? null : langs);
         }
 
+        applyPracticeLocation(d, req);
+
         doctorRepository.save(d);
         return toPublicDto(d);
     }
@@ -227,8 +229,9 @@ public class DoctorService {
     }
 
     /**
-     * Materializes slots for the rolling horizon when patients browse, so we do not rely only on
-     * the doctor's last availability save (which drifts after {@link SlotGenerationService#HORIZON_DAYS}).
+     * Ensures the rolling window has materialized slots (insert-only) then returns free slots for the
+     * requested day. Uses {@link SlotGenerationService#ensureSlotsForRollingWindow} so listing does not
+     * delete/recreate rows — stable {@link TimeSlot} ids are required for {@code POST /appointments}.
      */
     @Transactional
     public List<TimeSlotItemDto> listFreeSlots(Long doctorId, LocalDate date) {
@@ -237,7 +240,7 @@ public class DoctorService {
             throw ApiException.notFound("Doctor not found");
         }
 
-        slotGenerationService.regenerateSlotsForDoctor(doctorId);
+        slotGenerationService.ensureSlotsForRollingWindow(doctorId);
 
         List<TimeSlot> slots =
                 timeSlotRepository.findByDoctor_IdAndSlotDateAndBookedFalseOrderByStartTimeAsc(doctorId, date);
@@ -336,9 +339,38 @@ public class DoctorService {
                 d.getConsultationFee(),
                 d.getBio(),
                 d.getPracticeCity(),
+                d.getPracticeAddressFormatted(),
+                d.getPracticeLatitude(),
+                d.getPracticeLongitude(),
+                d.getPracticePlaceId(),
                 d.getLanguages(),
                 d.getVerificationStatus(),
                 d.isVerified());
+    }
+
+    private static void applyPracticeLocation(Doctor d, UpdateDoctorProfileRequest req) {
+        if (!Boolean.TRUE.equals(req.replacePracticeLocation())) {
+            return;
+        }
+        boolean hasLat = req.practiceLatitude() != null;
+        boolean hasLng = req.practiceLongitude() != null;
+        if (hasLat != hasLng) {
+            throw ApiException.badRequest("practiceLatitude and practiceLongitude must both be provided together");
+        }
+        if (req.practiceAddressFormatted() != null) {
+            String raw = req.practiceAddressFormatted().trim();
+            d.setPracticeAddressFormatted(raw.isEmpty() ? null : (raw.length() > 500 ? raw.substring(0, 500) : raw));
+        } else {
+            d.setPracticeAddressFormatted(null);
+        }
+        d.setPracticeLatitude(req.practiceLatitude());
+        d.setPracticeLongitude(req.practiceLongitude());
+        if (req.practicePlaceId() != null) {
+            String pid = req.practicePlaceId().trim();
+            d.setPracticePlaceId(pid.isEmpty() ? null : (pid.length() > 256 ? pid.substring(0, 256) : pid));
+        } else {
+            d.setPracticePlaceId(null);
+        }
     }
 
     private static void validateWindow(LocalTime start, LocalTime end) {
@@ -346,7 +378,6 @@ public class DoctorService {
             throw ApiException.badRequest("start_time must be before end_time");
         }
     }
-
     private void assertNoOverlappingRules(
             long doctorId, ScheduleDay day, LocalTime start, LocalTime end, Long excludeRuleId) {
         availabilityRepository.findByDoctor_IdOrderByDayOfWeekAscStartTimeAsc(doctorId).stream()

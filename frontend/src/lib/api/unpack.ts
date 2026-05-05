@@ -81,8 +81,16 @@ export async function fromAxiosVoid(
     const res = await exec();
     unwrapVoid(res.data as ApiResponse<void>);
   } catch (e: unknown) {
-    if (axios.isAxiosError(e) && e.response?.data) {
-      unwrapVoid(e.response.data as ApiResponse<void>);
+    if (!axios.isAxiosError(e)) throw e;
+    const payload = e.response?.data;
+    if (
+      payload !== undefined &&
+      payload !== null &&
+      typeof payload === "object" &&
+      "success" in (payload as Record<string, unknown>)
+    ) {
+      unwrapVoid(payload as ApiResponse<void>);
+      return;
     }
     throw e;
   }

@@ -1,11 +1,15 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { ClipboardList, Stethoscope } from "lucide-react";
 
 import { AppPageShell } from "@/components/app/app-page-shell";
+import {
+  PracticeAddressPicker,
+  type PracticeLocationValue,
+} from "@/components/doctor/practice-address-picker";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Input } from "@/components/ui/input";
@@ -16,6 +20,7 @@ import {
   updateMyDoctorProfile,
 } from "@/lib/api/doctors";
 import { cn } from "@/lib/utils";
+import { getGoogleMapsApiKey } from "@/lib/env";
 
 interface FormVals {
   specialization: string;
@@ -29,6 +34,15 @@ interface FormVals {
 
 export default function DoctorProfilePage() {
   const qc = useQueryClient();
+  const mapsKey = getGoogleMapsApiKey();
+
+  const [practiceLoc, setPracticeLoc] = useState<PracticeLocationValue>({
+    formatted: "",
+    lat: null,
+    lng: null,
+    placeId: null,
+  });
+  const [pickerRemount, setPickerRemount] = useState(0);
 
   const { data, isLoading } = useQuery({
     queryKey: ["doctor", "me"],
@@ -54,6 +68,13 @@ export default function DoctorProfilePage() {
       practiceCity: data.practiceCity ?? "",
       languages: data.languages ?? "",
     });
+    setPracticeLoc({
+      formatted: data.practiceAddressFormatted ?? "",
+      lat: data.practiceLatitude ?? null,
+      lng: data.practiceLongitude ?? null,
+      placeId: data.practicePlaceId ?? null,
+    });
+    setPickerRemount((k) => k + 1);
   }, [data, reset]);
 
   const mutation = useMutation({
@@ -83,6 +104,11 @@ export default function DoctorProfilePage() {
       practiceCity:
         values.practiceCity.trim() === "" ? undefined : values.practiceCity.trim(),
       languages: values.languages.trim() === "" ? undefined : values.languages.trim(),
+      replacePracticeLocation: true,
+      practiceAddressFormatted: practiceLoc.formatted.trim() || null,
+      practiceLatitude: practiceLoc.lat,
+      practiceLongitude: practiceLoc.lng,
+      practicePlaceId: practiceLoc.placeId?.trim() || null,
     });
   }
 
@@ -159,6 +185,65 @@ export default function DoctorProfilePage() {
                   />
                 </div>
               </div>
+
+              {mapsKey ? (
+                <PracticeAddressPicker
+                  apiKey={mapsKey}
+                  remountKey={pickerRemount}
+                  inputId="practiceAddressMaps"
+                  label="Street address (Google Places)"
+                  value={practiceLoc}
+                  onChange={setPracticeLoc}
+                  disabled={mutation.isPending}
+                />
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="practiceAddressManual">Street address</Label>
+                  <Input
+                    id="practiceAddressManual"
+                    placeholder="Clinic or practice address"
+                    disabled={mutation.isPending}
+                    value={practiceLoc.formatted}
+                    onChange={(e) =>
+                      setPracticeLoc({
+                        formatted: e.target.value,
+                        lat: null,
+                        lng: null,
+                        placeId: null,
+                      })
+                    }
+                    className="h-11 rounded-xl border-border bg-background text-foreground shadow-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-teal-500/35 dark:border-white/15 dark:bg-white/[0.08]"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Set{" "}
+                    <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
+                      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+                    </code>{" "}
+                    for Google Places autocomplete and pinning coordinates for patients.
+                  </p>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={mutation.isPending}
+                  className="rounded-full text-xs"
+                  onClick={() => {
+                    setPracticeLoc({
+                      formatted: "",
+                      lat: null,
+                      lng: null,
+                      placeId: null,
+                    });
+                    setPickerRemount((k) => k + 1);
+                  }}
+                >
+                  Clear street address
+                </Button>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="qualifications">Qualifications &amp; training</Label>
                 <textarea

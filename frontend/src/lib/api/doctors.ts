@@ -66,6 +66,12 @@ export function updateMyDoctorProfile(body: {
   bio?: string;
   practiceCity?: string;
   languages?: string;
+  /** When true, persists the practice address fields below (including explicit nulls). */
+  replacePracticeLocation?: boolean;
+  practiceAddressFormatted?: string | null;
+  practiceLatitude?: number | null;
+  practiceLongitude?: number | null;
+  practicePlaceId?: string | null;
 }) {
   return fromAxios<DoctorPublicDto>(() =>
     api.put("/doctors/me/profile", body),

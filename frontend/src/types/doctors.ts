@@ -39,6 +39,11 @@ export interface DoctorPublicDto {
   consultationFee: number | null;
   bio: string | null;
   practiceCity: string | null;
+  /** Full street-level address chosen via Google Places (optional). */
+  practiceAddressFormatted: string | null;
+  practiceLatitude: number | null;
+  practiceLongitude: number | null;
+  practicePlaceId: string | null;
   languages: string | null;
   verificationStatus: VerificationStatus;
   verified: boolean;

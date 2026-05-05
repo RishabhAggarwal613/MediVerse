@@ -4,6 +4,7 @@ A medical platform that connects **Patients** and **Doctors**, with AI-powered h
 
 > - System design → [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
 > - User journeys & UX → [`docs/WORKFLOWS.md`](./docs/WORKFLOWS.md)
+> - One-page orientation → [`docs/PROJECT_OVERVIEW.md`](./docs/PROJECT_OVERVIEW.md)
 
 ---
 
@@ -15,7 +16,9 @@ MediVerse/
 ├── frontend/            # Next.js 14 (App Router) + TypeScript + Tailwind
 ├── docker-compose.yml   # MySQL 8 + MailHog (local dev)
 ├── docs/
-│   └── ARCHITECTURE.md
+│   ├── ARCHITECTURE.md
+│   ├── WORKFLOWS.md
+│   └── PROJECT_OVERVIEW.md
 ├── .env.example         # copy to .env and fill in
 ├── .gitignore
 └── README.md
@@ -25,7 +28,7 @@ MediVerse/
 
 ## Tech Stack
 
-- **Frontend** — Next.js 14, TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, Zustand, React Hook Form + Zod, Axios
+- **Frontend** — Next.js 14, TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, Zustand, React Hook Form + Zod, Axios; optional **`@googlemaps/js-api-loader`** on doctor profile when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is set
 - **Backend** — Spring Boot 3.5, Spring Security 6, Spring Data JPA, Flyway, springdoc-openapi
 - **Auth** — JWT (access + refresh) + Google OAuth2
 - **Database** — MySQL 8
@@ -43,6 +46,7 @@ MediVerse/
 - Docker + Docker Compose
 - An AWS account + S3 bucket *(for file uploads — Phase 2 onwards)*
 - Google OAuth2 Client *(for social login — Phase 2 onwards)*
+- **Optional:** Google Maps **Maps JavaScript API** browser key *(doctor profile — Places autocomplete + map pin + geolocation; see `.env.example`)*
 - Gemini API key *(for AI features — Phases 6 & 7)*
 
 ---
@@ -95,6 +99,14 @@ npm run dev
 
 Frontend → http://localhost:3000
 
+**Production-like env for Next:** public variables (`NEXT_PUBLIC_*`) are read from **`frontend/.env.local`** when you run **`npm run dev`** from **`frontend/`**. Keeping a copy of those lines in the repo-root **`.env`** is fine for editors and backend tooling, but **Next only auto-loads files under `frontend/`** unless you duplicate the keys — see **`.env.example`**.
+
+---
+
+## Patient navigation (practice location)
+
+When a doctor saves a **pinned practice address** (coordinates and/or formatted address) on **`/doctor/profile`**, patients see **Navigate** on **`/patient/appointments`** and **Navigate in Maps** on the home **Next appointment** card. Links open **`google.com/maps`** directions (**no frontend Maps API usage**).
+
 ---
 
 ## Doctor verification (admin)
@@ -127,7 +139,7 @@ Phases **0–8** are implemented. Status detail lives in **`memory-bank/progress
 | **5** ✅ | Appointments — booking, email, dashboards |
 | **6** ✅ | AI Health Assistant — Gemini chat |
 | **7** ✅ | AI Report Scanning — Vision, share with doctor |
-| **8** ✅ | Polish — admin verifications, onboarding, banners, profiles/theme (see **`memory-bank/progress.md`**) |
+| **8** ✅ | Polish — admin verifications, onboarding, banners, profiles/theme + **practice location / patient Navigate** (see **`memory-bank/progress.md`**) |
 
 See **`docs/ARCHITECTURE.md`** for the full design (DB schema, API surface, package layout, security model).
 
@@ -138,6 +150,16 @@ See **`docs/ARCHITECTURE.md`** for the full design (DB schema, API surface, pack
 All env vars live in `.env` (which is **gitignored**). Use `.env.example` as a template.
 
 Backend variables are read from `application.yml` via `${VAR:default}` placeholders. **The JVM does not read a `.env` file by itself** — this project calls `DotenvBootstrap` at startup to load the first `.env` found walking up from the working directory (so `mvn spring-boot:run` from `backend/` still picks up the **repo root** `.env`) into system properties for unset keys. OS environment variables and `-D` flags still win. Use `.env.example` as a template.
+
+### Frontend (Next.js public env)
+
+In addition to `NEXT_PUBLIC_API_BASE_URL` and `NEXT_PUBLIC_GOOGLE_OAUTH_URL`, you can set:
+
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional — doctor **`/doctor/profile`** street picker (Places + embedded map + reverse geocode + **Use current location**). Enable **Maps JavaScript API**, **Places API**, and billing on the GCP key; restrict HTTP referrers in production. |
+
+Place this in **`frontend/.env.local`** (gitignored template pattern `*.env*.local`). See **`docs/ARCHITECTURE.md`** (env / practice location subsection) for nuance.
 
 ### Google sign-in (OAuth)
 

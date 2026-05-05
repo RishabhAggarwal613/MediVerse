@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -11,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { forgotPasswordPost } from "@/lib/api/auth";
 import { ApiRequestError } from "@/lib/api/errors";
+import { getApiBaseUrl } from "@/lib/env";
 
 const schema = z.object({
   email: z.string().email().max(180),
@@ -33,10 +35,71 @@ export function ForgotPasswordForm() {
 
   async function onSubmit(values: FormValues) {
     setFormError(null);
+    // #region agent log
+    {
+      const b = getApiBaseUrl();
+      fetch("http://127.0.0.1:7387/ingest/93aff358-175d-4f5f-b914-e26cda2a7388", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Session-Id": "2c46e5",
+        },
+        body: JSON.stringify({
+          sessionId: "2c46e5",
+          hypothesisId: "H3",
+          location: "forgot-password-form.tsx:onSubmit",
+          message: "forgot-password start",
+          data: { apiEndsWithSlashApi: b.endsWith("/api"), len: b.length },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+    }
+    // #endregion
     try {
       await forgotPasswordPost(values.email);
+      // #region agent log
+      fetch("http://127.0.0.1:7387/ingest/93aff358-175d-4f5f-b914-e26cda2a7388", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Session-Id": "2c46e5",
+        },
+        body: JSON.stringify({
+          sessionId: "2c46e5",
+          hypothesisId: "H5",
+          location: "forgot-password-form.tsx:onSubmit",
+          message: "forgot-password axios ok",
+          data: { ok: true },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       setDone(true);
     } catch (e) {
+      // #region agent log
+      {
+        const ax = axios.isAxiosError(e);
+        fetch("http://127.0.0.1:7387/ingest/93aff358-175d-4f5f-b914-e26cda2a7388", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "2c46e5",
+          },
+          body: JSON.stringify({
+            sessionId: "2c46e5",
+            hypothesisId: "H5",
+            location: "forgot-password-form.tsx:onSubmit",
+            message: "forgot-password client error",
+            data: {
+              apiRequestError: e instanceof ApiRequestError,
+              axiosError: ax,
+              httpStatus: ax ? e.response?.status : undefined,
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+      }
+      // #endregion
       if (e instanceof ApiRequestError) {
         setFormError(e.message);
       } else {

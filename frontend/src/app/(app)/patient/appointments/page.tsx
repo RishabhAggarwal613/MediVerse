@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, ChevronRight, UserRound } from "lucide-react";
+import { CalendarClock, ChevronRight, Navigation, UserRound } from "lucide-react";
 
 import { AppPageHeader } from "@/components/app/app-page-header";
 import { AppPageShell } from "@/components/app/app-page-shell";
@@ -13,8 +13,17 @@ import {
   fetchMyAppointments,
 } from "@/lib/api/appointments";
 import { unwrapApiErrorMessage } from "@/lib/api/errors";
+import { googleMapsDirectionsUrl } from "@/lib/maps-links";
 import { cn } from "@/lib/utils";
 import type { AppointmentDto } from "@/types/appointments";
+
+function navigateHref(a: AppointmentDto): string | null {
+  return googleMapsDirectionsUrl({
+    latitude: a.practiceLatitude ?? null,
+    longitude: a.practiceLongitude ?? null,
+    address: a.practiceAddressFormatted ?? null,
+  });
+}
 
 function formatWhen(isoLocal: string) {
   try {
@@ -120,50 +129,73 @@ export default function PatientAppointmentsPage() {
         )}
 
         <ul className="space-y-4">
-          {list.map((a) => (
-            <li
-              key={a.id}
-              className="surface-app overflow-hidden p-5 shadow-md"
-            >
-              <div className="flex flex-wrap items-start gap-4">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-gradient text-white shadow-md shadow-brand-600/30">
-                  <UserRound className="h-6 w-6" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={cn(
-                        "inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
-                        statusBadgeClasses(a.status),
-                      )}
-                    >
-                      {a.status.replaceAll("_", " ")}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-lg font-semibold tracking-tight">{a.doctorName}</p>
-                  <p className="mt-1 text-sm tabular-nums text-muted-foreground">
-                    {formatWhen(a.scheduledAt)}
-                  </p>
-                  {a.reason && (
-                    <p className="mt-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm text-foreground/90">
-                      Reason: {a.reason}
+          {list.map((a) => {
+            const navTo = navigateHref(a);
+            return (
+              <li
+                key={a.id}
+                className="surface-app overflow-hidden p-5 shadow-md"
+              >
+                <div className="flex flex-wrap items-start gap-4">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-gradient text-white shadow-md shadow-brand-600/30">
+                    <UserRound className="h-6 w-6" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
+                          statusBadgeClasses(a.status),
+                        )}
+                      >
+                        {a.status.replaceAll("_", " ")}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-lg font-semibold tracking-tight">{a.doctorName}</p>
+                    <p className="mt-1 text-sm tabular-nums text-muted-foreground">
+                      {formatWhen(a.scheduledAt)}
                     </p>
-                  )}
+                    {a.reason && (
+                      <p className="mt-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-sm text-foreground/90">
+                        Reason: {a.reason}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 sm:ml-auto sm:w-auto sm:flex-col sm:items-stretch">
+                    {navTo && (
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full border-brand-200/80 bg-white/90 shadow-sm backdrop-blur dark:bg-white/[0.06]"
+                      >
+                        <a
+                          href={navTo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5"
+                        >
+                          <Navigation className="h-4 w-4 shrink-0" aria-hidden />
+                          Navigate
+                        </a>
+                      </Button>
+                    )}
+                    {(a.status === "PENDING" || a.status === "CONFIRMED") && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="rounded-full"
+                        disabled={cancelMut.isPending}
+                        onClick={() => cancelMut.mutate(a.id)}
+                      >
+                        {cancelMut.isPending ? "…" : "Cancel"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                {(a.status === "PENDING" || a.status === "CONFIRMED") && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="shrink-0 rounded-full"
-                    disabled={cancelMut.isPending}
-                    onClick={() => cancelMut.mutate(a.id)}
-                  >
-                    {cancelMut.isPending ? "…" : "Cancel"}
-                  </Button>
-                )}
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       </Container>
     </AppPageShell>

@@ -373,7 +373,10 @@ public class AppointmentService {
                 pu.getEmail(),
                 du.getEmail(),
                 appointment.getReason(),
-                appointment.getDoctorNote());
+                appointment.getDoctorNote(),
+                doctor.getPracticeAddressFormatted(),
+                doctor.getPracticeLatitude(),
+                doctor.getPracticeLongitude());
     }
 
     private Patient patientOrThrow(User user) {

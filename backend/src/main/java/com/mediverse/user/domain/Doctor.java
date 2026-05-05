@@ -59,6 +59,18 @@ public class Doctor {
     @Column(name = "practice_city", length = 120)
     private String practiceCity;
 
+    @Column(name = "practice_address_formatted", length = 500)
+    private String practiceAddressFormatted;
+
+    @Column(name = "practice_latitude", precision = 11, scale = 8)
+    private BigDecimal practiceLatitude;
+
+    @Column(name = "practice_longitude", precision = 11, scale = 8)
+    private BigDecimal practiceLongitude;
+
+    @Column(name = "practice_place_id", length = 256)
+    private String practicePlaceId;
+
     @Column(length = 512)
     private String languages;
 

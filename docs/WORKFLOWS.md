@@ -18,7 +18,8 @@
 | Login flow                        | **Unified `/login`** — backend resolves role and redirects to `/patient/dashboard` or `/doctor/dashboard` |
 | Visual style                      | **Vibrant gradient** — bold gradients, glassy cards, animated hero                          |
 | Primary brand color               | **Emerald** (health/wellness)                                                               |
-| Patient dashboard layout          | Top banner for next appointment + grid (AI Assistant widget, "Find a Doctor" CTA, "Scan Report" CTA, Recent Reports, Daily Health Tip) |
+| Patient dashboard layout          | Top banner for next appointment (**Navigate in Maps** when doctor practice coords/address known) + grid (AI Assistant widget, "Find a Doctor" CTA, "Scan Report" CTA, Recent Reports, Daily Health Tip) |
+| Directions to clinic              | **`google.com/maps` directions** opened from patient appointment list / dashboard (**no Maps JavaScript billed** — optional API key only for doctor profile picker). |
 | Doctor dashboard layout           | Today's appointments timeline + pending approvals + stats cards + next-patient highlight + availability status |
 | Onboarding                        | **Checklist on dashboard** (e.g. "Set profile pic", "Try AI Assistant", "Find a doctor") — auto-dismisses when items complete |
 | First-time auth                   | Email + password (with email verification link) **or** Google OAuth                           |
@@ -331,6 +332,7 @@ Patient                                Frontend                        Backend
 ### P8 — Manage Appointments
 - `/appointments` — tabs: **Upcoming** / **Past** / **Pending**
 - Each card shows status badge, doctor info, date/time, reason.
+- **Navigate** — when the doctor saved practice coordinates or a formatted address, opens **Google Maps directions** in a new tab (same pattern as doctor detail page).
 - **Cancel** action:
   - Allowed when `now < scheduled_at - 2h`.
   - Otherwise the button is **disabled with tooltip** "Cancellation closed (must cancel ≥2h before)."
@@ -412,6 +414,12 @@ Patient                                Frontend                        Backend
    - Edit a rule (regenerates future *unbooked* slots)
    - Delete a rule (deletes future unbooked slots from that rule; booked slots remain valid)
    - Add a **single-date override**: "block May 5" or "extra slots on May 6 from 6–8 PM"
+
+### D4b — Clinic street address / map pin (doctor profile)
+
+1. **`/doctor/profile`** — aside from city + languages: **Street address** with optional Google **Places**, embedded **map** (click/drag pin), **`Use current location`** (browser geolocation + reverse geocode), or manual text.
+2. Saves via `PUT /api/doctors/me/profile` with **`replacePracticeLocation: true`** when replacing the Maps-managed block (`practice_address_formatted`, latitude/longitude, `practice_place_id`).
+3. **`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`** powers the picker; outbound patient **Navigate** links do **not** consume that key.
 
 ### D5 — Manage Appointment Requests
 

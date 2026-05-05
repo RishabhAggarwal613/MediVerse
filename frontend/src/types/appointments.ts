@@ -12,4 +12,8 @@ export interface AppointmentDto {
   doctorEmail: string;
   reason: string | null;
   doctorNote: string | null;
+  /** Doctor practice location for maps — set when doctor saved address/coords */
+  practiceAddressFormatted?: string | null;
+  practiceLatitude?: number | null;
+  practiceLongitude?: number | null;
 }

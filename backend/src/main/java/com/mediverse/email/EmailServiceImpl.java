@@ -42,8 +42,11 @@ public class EmailServiceImpl implements EmailService {
         send(to, "Verify your MediVerse email", "email/verify-email", vars);
     }
 
+    /**
+     * Sent synchronously (often via {@code afterCommit}) so the reset token row is committed
+     * before SMTP runs and failures surface on the serving thread for observability.
+     */
     @Override
-    @Async
     public void sendPasswordReset(String to, String fullName, String resetLink) {
         Map<String, Object> vars = new HashMap<>();
         vars.put("fullName", fullName);

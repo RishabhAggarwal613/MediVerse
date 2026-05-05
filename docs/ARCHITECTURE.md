@@ -283,6 +283,11 @@ com.mediverse
 | verification_note   | VARCHAR(500)    | reason on reject |
 | is_verified         | BOOLEAN         | denormalized = `verification_status = APPROVED` |
 | rating_avg          | DECIMAL(2,1)    | denormalized cache (future) |
+| practice_city       | VARCHAR(120) NULL | surfaced in doctor search/detail |
+| languages           | VARCHAR(255) NULL | spoken languages (free text) |
+| practice_address_formatted | VARCHAR(500) NULL | clinic street via doctor profile (+ Google Places / map UI) |
+| practice_latitude / practice_longitude | DECIMAL NULL | pinned coordinates |
+| practice_place_id   | VARCHAR(256) NULL | Google Place id when resolved |
 
 #### `doctor_availability` — weekly recurring rule
 | column                | type           | notes |
@@ -363,7 +368,19 @@ V4__doctor_availability_and_slots.sql
 V5__appointments.sql
 V6__ai_chat.sql
 V7__ai_reports.sql
+V8__doctor_practice_fields.sql (practice_city, languages on doctors)
+V9__doctor_practice_address.sql (practice formatted address + lat/lng + place id on doctors)
 ```
+
+**Slot generation:** patient slot listing augments windows without deleting/recreating booked rows (`SlotGenerationService`); never invalidate `slotId` between listing and POST book.
+
+---
+
+### Practice location & maps (doctor / patient UX)
+
+- **Doctor** — `PUT /api/doctors/me/profile` accepts optional practice address block (`replacePracticeLocation` replaces the stored block atomically).
+- **Patient** — `GET /api/appointments/me` returns **`AppointmentDto`** with the doctor's **`practiceAddressFormatted`**, **`practiceLatitude`**, **`practiceLongitude`** when set (same source as doctor profile); frontend builds Google Maps directions URLs (**no Maps API key** required for outbound `google.com/maps` links).
+- Optional frontend env **`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`** (see `.env.example`) powers **Places Autocomplete**, embedded map picker, reverse geocode, and **browser geolocation** on the doctor profile (`@googlemaps/js-api-loader` v2 modular loading). Prefer **`frontend/.env.local`** for Next.js alongside repo-root `.env`.
 
 ---
 
@@ -414,7 +431,7 @@ All responses wrap in:
 
 ### Appointments — `/api/appointments`
 | POST   | `/`                | PATIENT | Book a slot `{slotId, reason}` |
-| GET    | `/me`              | auth    | My appointments (role-aware) |
+| GET    | `/me`              | auth    | My appointments (role-aware); dto includes **`practiceAddressFormatted`**, **`practiceLatitude`**, **`practiceLongitude`** for patient navigation UX |
 | GET    | `/{id}`            | auth    | Detail (must be involved party) |
 | PATCH  | `/{id}/approve`    | DOCTOR  | Approve `PENDING` |
 | PATCH  | `/{id}/reject`     | DOCTOR  | Reject `PENDING` |
@@ -499,7 +516,7 @@ frontend/
 │   │   │                                      # CtaBand, MarketingNav, MarketingFooter,
 │   │   │                                      # GradientBlob, RoleCard
 │   │   ├── auth/   { LoginForm, PatientSignupForm, DoctorSignupForm, RoleGate }
-│   │   ├── doctor/ { DoctorCard, DoctorFilters, AvailabilityEditor }
+│   │   ├── doctor/ { DoctorCard, DoctorFilters, AvailabilityEditor, PracticeAddressPicker }
 │   │   ├── appointment/ { SlotPicker, AppointmentList, AppointmentCard, StatusBadge }
 │   │   ├── ai/     { ChatBubble, ChatInput, ReportUploader, FindingsTable, ShareWithDoctorDialog }
 │   │   ├── shell/  { PatientSidebar, DoctorSidebar, AppHeader, OnboardingChecklist }
@@ -640,11 +657,14 @@ gemini:
   vision-model: gemini-2.5-pro
 ```
 
-`frontend/.env.local`:
+`frontend/.env.local` (recommended for Next-loaded public vars):
 ```
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
-NEXT_PUBLIC_GOOGLE_OAUTH_REDIRECT=http://localhost:8080/oauth2/authorization/google
+NEXT_PUBLIC_GOOGLE_OAUTH_URL=http://localhost:8080/oauth2/authorization/google
+# Optional — doctor profile: Places + Maps + Geocoder (@googlemaps/js-api-loader)
+# NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
 ```
+Also see repo-root `.env.example` — mirror **`NEXT_PUBLIC_*`** keys here because **`npm run dev`** runs from **`frontend/`** and loads `.env*` in that directory first.
 
 ---
 
@@ -710,12 +730,13 @@ Each phase ends in a working, testable slice.
 - Share with doctor flow (read-only access for the chosen doctor).
 - Frontend: uploader, findings table, share dialog. **(Done — `/patient/ai-reports/*`, `/doctor/reports/[id]`.)**
 
-### Phase 8 — Polish
+### Phase 8 — Polish (plus incremental location UX)
 - Doctor dashboard stats.
 - Onboarding checklist (computed from profile completeness on each role's dashboard).
 - `/admin/verifications` page (env-var-allowlisted emails) + email-verification banner + pending-verification banner.
 - Validation messages, empty states, loading skeletons, error boundaries.
 - README with run instructions.
+- **Incrementally shipped:** **V9** practice address/coordinates on `doctors`; doctor profile Maps picker; **`AppointmentDto`** practice fields for **Navigate** on patient appointments; slot-list stability fixes (avoid regenerating rows on patient slot fetch).
 - (Optional) Dockerfile for backend + frontend.
 - **Local dev ops (reminder):** If `mvn spring-boot:run` ends with **Maven BUILD FAILURE** and **exit code 137**, the JVM received **SIGKILL** (port teardown, `kill -9`, OOM killer, or tool timeout)—not a compile error if Tomcat had already started; restart the backend. Mitigate OOM with `MAVEN_OPTS` heap limits or less memory pressure.
 - **Gemini upstream:** Google may return **HTTP 503 `UNAVAILABLE`** (e.g. high demand). The API maps this to `upstreamUnavailable`; users should retry later or try another **`GEMINI_CHAT_MODEL`** in `.env`. Optional later: retries with backoff.

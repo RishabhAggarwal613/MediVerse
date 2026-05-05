@@ -29,6 +29,9 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
     List<TimeSlot> findByDoctor_IdAndSlotDateAndBookedFalseOrderByStartTimeAsc(
             Long doctorId, LocalDate slotDate);
 
+    List<TimeSlot> findByDoctor_IdAndSlotDateBetweenAndBookedFalseOrderBySlotDateAscStartTimeAsc(
+            Long doctorId, LocalDate startInclusive, LocalDate endInclusive);
+
     boolean existsByDoctor_IdAndSlotDateAndStartTime(Long doctorId, LocalDate slotDate, LocalTime startTime);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

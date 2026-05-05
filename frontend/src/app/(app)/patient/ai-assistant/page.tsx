@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
-import { Bot } from "lucide-react";
+import { Bot, Mic } from "lucide-react";
 
 import { AppPageHeader } from "@/components/app/app-page-header";
 import { AppPageShell } from "@/components/app/app-page-shell";
@@ -16,7 +16,31 @@ import {
   sendAiChatMessage,
 } from "@/lib/api/ai";
 import { unwrapApiErrorMessage } from "@/lib/api/errors";
+import {
+  SPEECH_RECOGNITION_LANG_OPTIONS,
+  useSpeechRecognition,
+} from "@/hooks/use-speech-recognition";
 import type { AiChatMessageDto, AiChatSessionDto, SendAiChatMessagesResponseDto } from "@/types/ai";
+
+const SPEECH_LANG_STORAGE_KEY = "mediverse.aiAssistant.speechLang";
+
+function readInitialSpeechLang(): string {
+  if (typeof window === "undefined") return "en-US";
+  try {
+    const stored = window.localStorage.getItem(SPEECH_LANG_STORAGE_KEY);
+    if (stored && SPEECH_RECOGNITION_LANG_OPTIONS.some((o) => o.value === stored)) {
+      return stored;
+    }
+  } catch {
+    /* ignore */
+  }
+  const nav = navigator.language;
+  if (SPEECH_RECOGNITION_LANG_OPTIONS.some((o) => o.value === nav)) return nav;
+  const match = SPEECH_RECOGNITION_LANG_OPTIONS.find(
+    (o) => o.value === nav || o.value.startsWith(`${nav.split("-")[0]}-`),
+  );
+  return match?.value ?? "en-US";
+}
 
 function isUserRole(role: string) {
   return role?.toUpperCase() === "USER";
@@ -87,6 +111,30 @@ export default function PatientAiAssistantPage() {
   }, [sessionsQ.data, activeSessionId]);
 
   const [draft, setDraft] = React.useState("");
+  const [speechLang, setSpeechLang] = React.useState("en-US");
+  const appendFromSpeech = React.useCallback((text: string) => {
+    const t = text.trim();
+    if (!t) return;
+    setDraft((d) => {
+      const base = d.trim();
+      return base ? `${base} ${t}` : t;
+    });
+  }, []);
+
+  React.useEffect(() => {
+    setSpeechLang(readInitialSpeechLang());
+  }, []);
+
+  const speech = useSpeechRecognition({
+    lang: speechLang,
+    onFinal: appendFromSpeech,
+  });
+
+  // Stop any active session when the recognition language changes (not on every `speech` state update).
+  React.useEffect(() => {
+    speech.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally omit `speech`; see comment
+  }, [speechLang, speech.stop]);
 
   const createMut = useMutation({
     mutationFn: () => createAiChatSession(),
@@ -157,6 +205,7 @@ export default function PatientAiAssistantPage() {
   }, [messagesQ.data, pendingOutgoing, sendMut.isPending]);
 
   function submitMessage() {
+    speech.stop();
     const text = draft.trim();
     if (!text || sendMut.isPending) return;
     lastFailedDraft.current = text;
@@ -362,6 +411,66 @@ export default function PatientAiAssistantPage() {
               onSubmit={handleFormSubmit}
               className="shrink-0 border-t border-border/60 bg-background/90 p-4 backdrop-blur"
             >
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <label htmlFor="speech-lang" className="sr-only">
+                  Speech recognition language
+                </label>
+                <select
+                  id="speech-lang"
+                  className="max-w-[min(100%,220px)] rounded-lg border border-border bg-background px-2 py-1.5 text-xs shadow-sm outline-none ring-brand-600/20 focus:ring-2 disabled:opacity-50"
+                  value={speechLang}
+                  disabled={!speech.supported || composerDisabled || speech.listening}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setSpeechLang(v);
+                    try {
+                      window.localStorage.setItem(SPEECH_LANG_STORAGE_KEY, v);
+                    } catch {
+                      /* ignore */
+                    }
+                  }}
+                >
+                  {SPEECH_RECOGNITION_LANG_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  variant={speech.listening ? "secondary" : "outline"}
+                  size="sm"
+                  className={
+                    speech.listening
+                      ? "gap-2 ring-2 ring-brand-500/40 animate-pulse"
+                      : "gap-2"
+                  }
+                  disabled={composerDisabled || !speech.supported}
+                  aria-pressed={speech.listening}
+                  title={
+                    speech.supported
+                      ? speech.listening
+                        ? "Stop voice input"
+                        : "Dictate with microphone"
+                      : "Voice input not available in this browser"
+                  }
+                  onClick={() => {
+                    if (speech.listening) speech.stop();
+                    else speech.start();
+                  }}
+                >
+                  <Mic className="h-4 w-4 shrink-0" aria-hidden />
+                  {speech.listening ? "Stop" : "Voice"}
+                </Button>
+                {!speech.supported && (
+                  <span className="text-[11px] text-muted-foreground">
+                    Voice isn&apos;t supported here — type instead.
+                  </span>
+                )}
+              </div>
+              {speech.error && (
+                <p className="mb-2 text-xs text-destructive">{speech.error}</p>
+              )}
               <div className="flex gap-2">
                 <textarea
                   className="max-h-[180px] min-h-[72px] flex-1 resize-y rounded-xl border border-border bg-background px-3 py-2.5 text-sm shadow-sm outline-none ring-brand-600/25 focus:ring-2 disabled:opacity-55"
@@ -385,8 +494,16 @@ export default function PatientAiAssistantPage() {
                   Send
                 </Button>
               </div>
+              {speech.listening && speech.interimTranscript && (
+                <p className="mt-1.5 text-xs italic text-muted-foreground">
+                  {speech.interimTranscript}
+                </p>
+              )}
               <p className="mt-2 text-[11px] text-muted-foreground">
                 Enter to send · Shift+Enter for new line
+                {speech.supported
+                  ? " · Voice uses your browser (quality varies by language)."
+                  : ""}
               </p>
             </form>
           </div>

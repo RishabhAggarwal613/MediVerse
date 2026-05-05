@@ -39,6 +39,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -296,10 +298,15 @@ public class AuthService {
         if (email == null || email.isBlank()) {
             return;
         }
-        userRepository
-                .findByEmailIgnoreCase(email.trim())
-                .filter(u -> u.getProvider() == Provider.LOCAL && u.getPassword() != null)
-                .ifPresent(this::sendPasswordResetEmail);
+        var userOpt = userRepository.findByEmailIgnoreCase(email.trim());
+        if (userOpt.isEmpty()) {
+            return;
+        }
+        var u = userOpt.get();
+        if (u.getProvider() != Provider.LOCAL || u.getPassword() == null) {
+            return;
+        }
+        sendPasswordResetEmail(u);
     }
 
     @Transactional
@@ -413,7 +420,19 @@ public class AuthService {
                 .formatted(
                         stripTrailingSlash(appProperties.frontend().baseUrl()),
                         URLEncoder.encode(token, StandardCharsets.UTF_8));
-        emailService.sendPasswordReset(user.getEmail(), user.getFullName(), link);
+        final String to = user.getEmail();
+        final String fullName = user.getFullName();
+        Runnable sendReset = () -> emailService.sendPasswordReset(to, fullName, link);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    sendReset.run();
+                }
+            });
+        } else {
+            sendReset.run();
+        }
     }
 
     private void notifyAdminsOfPendingDoctor(User doctorUser, Doctor doctor) {

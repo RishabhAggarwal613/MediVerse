@@ -14,6 +14,10 @@ public record DoctorPublicDto(
         BigDecimal consultationFee,
         String bio,
         String practiceCity,
+        String practiceAddressFormatted,
+        BigDecimal practiceLatitude,
+        BigDecimal practiceLongitude,
+        String practicePlaceId,
         String languages,
         VerificationStatus verificationStatus,
         boolean verified) {}

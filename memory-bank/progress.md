@@ -2,7 +2,7 @@
 
 Phase-by-phase status, working endpoints, and test counts.
 
-> Last updated: **2026-04-29** — Phase 8 complete; **`README.md`** + memory bank synced. **`mvn test`** → **23** tests.
+> Last updated: **2026-05-05** — **Practice location + patient Navigate** documented; README + `docs/*` + memory bank aligned. Run **`mvn test`** locally after pull (see surefire summary).
 
 ## Phase status
 
@@ -18,11 +18,20 @@ Phase-by-phase status, working endpoints, and test counts.
 | **7** | **AI Report Scanning** | **Done** (upload + Vision + `ai_reports` + share + patient/doctor pages) |
 | **8** | **Polish** | **Done** (V8 profiles/theme + admin verification UI + onboarding + banners) |
 
-## Phase 8 — shipped
+## Post–Phase 8 — practice location & navigation (shipped)
+
+- **Flyway `V9__doctor_practice_address.sql`** — nullable formatted address + latitude + longitude + `practice_place_id` on **`doctors`** (extends **`V8`** city + languages).
+- **Doctor profile API** — `PUT /api/doctors/me/profile` with `replacePracticeLocation` replaces the Maps-managed block cleanly.
+- **Frontend doctor profile** — `PracticeAddressPicker`: Google Places + embedded map (click/drag) + **`Use current location`** (`@googlemaps/js-api-loader` v2 modular APIs); **`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`** in **`frontend/.env.local`**.
+- **`AppointmentDto`** — includes **`practiceAddressFormatted`**, **`practiceLatitude`**, **`practiceLongitude`** from the doctor for **Navigate** (`lib/maps-links.ts` → `google.com/maps/dir`).
+- **Patient UX** — **`/patient/appointments`** + home “next appointment” **Navigate** when location data exists.
+- **Booking stability** — patient slot listing no longer destroys/recreates rows in a way that invalidates **`slotId`** before POST book (`SlotGenerationService` / listing path).
+
+## Phase 8 — shipped (original scope)
 
 - **Earlier batch:** **`V8__doctor_practice_fields.sql`** (`practice_city`, `languages`); patient profile / doctor search UX; themed **`AppPageShell`**; **`DoctorSummaryDto.availabilitySummary`** from weekly availability.
 - **Admin doctor verification:** `GET /api/admin/doctors/pending`, approve/reject; **`/admin/verifications`**; **`ADMIN_EMAILS`** (`UserDto.admin`).
-- **`DoctorPublicDto`:** **`verificationStatus`** (`PENDING` | `APPROVED` | `REJECTED`) for doctor-banner UX.
+- **`DoctorPublicDto`:** **`verificationStatus`** (`PENDING` \| `APPROVED` \| `REJECTED`) for doctor-banner UX.
 - **Onboarding:** **`GET /api/users/me/onboarding`** — checklist on patient & doctor home when incomplete.
 - **Banners:** unverified-email strip + resend; doctor pending/rejected license banner below nav.
 
@@ -33,7 +42,7 @@ Phase-by-phase status, working endpoints, and test counts.
 
 ## Test count
 
-Backend: **`mvn test`** → **23** tests (includes **`AiControllerTest`**, **`AiReportControllerTest`**, **`AppointmentControllerTest`**).
+Backend: **`mvn test`** — JUnit suites under `backend/src/test` (includes **`AppointmentControllerTest`**, **`AiControllerTest`**, **`AiReportControllerTest`**, etc.). Re-run after schema/DTO changes; slice tests avoid live MySQL (H2 / mocks).
 
 ## Phase 7 — AI Report Scanning — shipped
 
@@ -81,6 +90,5 @@ Booking, lifecycle emails, dashboard stats — see **`docs/ARCHITECTURE.md`** fo
 
 ## Source control
 
-- Remote: `git@github.com:RishabhAggarwal613/MediVerse.git` (SSH).
-- **Recent tip:** Phase 8 polish — **`59566bc`** on **`main`** (see `git log` for latest).
-- **Phase 5 release (historical):** **`6279143`** on **`main`**.
+- Remote: **`git@github.com:RishabhAggarwal613/MediVerse.git`** (SSH).
+- After **`git pull`**, run Flyway-backed backend once so **`V9`** applies on dev MySQL when applicable.

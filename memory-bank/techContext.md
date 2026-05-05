@@ -39,13 +39,14 @@ tooling or dependencies change.
 | Zod | **4** |
 | `next-themes` | 0.4.x |
 | `tailwindcss-animate` | 1.x |
+| `@googlemaps/js-api-loader` | **v2** (doctor profile — modular `importLibrary` for places/maps/geocoding; optional) |
 
 ### Database
 
 - **MySQL 8.0.45** — host-installed, NOT containerized.
 - Database: `mediverse`, charset `utf8mb4`, collation `utf8mb4_unicode_ci`.
 - User: `mediverse@localhost`, password `mediversepass` (dev only).
-- **Flyway (dev, host MySQL):** through **`V8__doctor_practice_fields.sql`** — nullable **`doctors.practice_city`** and **`doctors.languages`**. Applied on backend startup when the DB is reachable.
+- **Flyway (dev, host MySQL):** through **`V9__doctor_practice_address.sql`** — adds nullable **`practice_address_formatted`**, **`practice_latitude`**, **`practice_longitude`**, **`practice_place_id`** on **`doctors`** (after **`V8`** `practice_city` / `languages`).
 
 ## Local setup
 
@@ -107,8 +108,11 @@ Highlights:
 - `ADMIN_EMAILS` — comma-separated allowlist for `/admin/verifications`.
 - `APPT_BOOKING_HORIZON_DAYS=7`, `APPT_CANCEL_WINDOW_HOURS=2`.
 
-Frontend uses `NEXT_PUBLIC_API_BASE_URL` (`http://localhost:8080/api`) and
-`NEXT_PUBLIC_GOOGLE_OAUTH_URL`.
+Frontend uses `NEXT_PUBLIC_API_BASE_URL` (`http://localhost:8080/api`),
+`NEXT_PUBLIC_GOOGLE_OAUTH_URL`, and optionally **`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`**
+for the doctor profile address picker. **Next.js loads `NEXT_PUBLIC_*` from
+`frontend/.env` / `frontend/.env.local`** when `npm run dev` runs with `frontend/`
+as cwd — duplicating keys into the repo-root `.env` alone is not enough for Maps.
 
 ## Test infrastructure
 

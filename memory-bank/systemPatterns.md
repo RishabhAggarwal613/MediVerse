@@ -167,6 +167,7 @@ book/approve/reject/cancel, and a day-before reminder (`@Scheduled`).
   (no external dep).
 - **`next-themes` for dark mode**, with `suppressHydrationWarning` on `<html>`
   and a hydration-safe `ThemeToggle`.
+- **`lib/maps-links.ts`** — builds **`https://www.google.com/maps/dir/?api=1&destination=...`** for outbound **Navigate** links (no billed Maps JS calls; coords preferred over free text).
 
 ## Conventions
 
