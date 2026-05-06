@@ -1,6 +1,6 @@
 # MediVerse
 
-**MediVerse** is a full-stack healthcare web app that connects **patients** and **verified doctors**. Patients can browse doctors, book visits, chat with an **AI Health Assistant** (guardrailed Gemini), upload **lab reports** for AI-assisted analysis (vision), and open **directions** to a doctor’s clinic when location is set. Doctors manage profile, weekly **availability**, **practice address** (optional Google Places + map + device location), and the full **appointment** lifecycle—with email notifications throughout.
+**MediVerse** is a full-stack healthcare web app that connects **patients** and **verified doctors**. Patients can browse doctors, book visits, chat with an **AI Health Assistant** (guardrailed Gemini), upload **lab reports** for AI-assisted analysis (OCR → text summarization), and open **directions** to a doctor’s clinic when location is set. Doctors manage profile, weekly **availability**, **practice address** (optional Google Places + map + device location), and the full **appointment** lifecycle—with email notifications throughout.
 
 There is **no separate product “admin” role** in the database. Doctor license review is done through a small **`/admin/verifications`** area, gated by an **email allowlist** in configuration.
 
@@ -28,7 +28,7 @@ There is **no separate product “admin” role** in the database. Doctor licens
 | **Book appointments** | Pick a free slot inside the server-defined horizon; bookings can be **instant** or **pending approval** per doctor rules. **Navigate** opens Google Maps directions when the doctor saved practice coordinates or address. |
 | **Appointments** | List upcoming/past bookings; cancel within the **2-hour** pre-visit window (server-enforced). |
 | **AI Health Assistant** | Session-based chat with Gemini; system prompt enforces “no diagnosis / no prescriptions” and similar guardrails. |
-| **AI report scan** | Upload PDF or image; backend stores in **S3**, calls **Gemini Vision**, saves structured summary/findings; optional **share with one doctor** for read-only access on the doctor side. |
+| **AI report scan** | Upload PDF or image; backend stores in **S3**, runs **OCR** to extract text, then calls **Gemini** to produce a structured summary/findings; optional **share with one doctor** for read-only access on the doctor side. |
 | **Profile & onboarding** | Profile fields, avatar upload, onboarding checklist until key steps are complete. |
 
 ### Doctors
@@ -99,6 +99,7 @@ MediVerse/
 - **AWS S3** credentials and bucket (for uploads in real use)
 - **Google OAuth** client (optional but recommended for “Sign in with Google”)
 - **Gemini API key** (for AI chat + report scanning)
+- **Tesseract OCR** (for report text extraction) + language data (tessdata)
 - **Optional:** Google Cloud **Maps JavaScript API** key with **Places** (doctor address picker)
 
 ---
@@ -178,6 +179,21 @@ npm run dev
 Authoritative key list and comments: **`.env.example`**.
 
 **Backend (repo-root `.env` or OS env):** `DB_URL` / `DB_USER` / `DB_PASSWORD`, `JWT_SECRET`, `AWS_*`, `GEMINI_API_KEY` and model names, `MAIL_*`, `CORS_ALLOWED_ORIGINS`, `ADMIN_EMAILS`, `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, optional **`GOOGLE_CALENDAR_*`** (Calendar API + Meet for video bookings), optional `APPT_*` horizon/window overrides.
+
+### OCR (report scanning) — local prerequisites
+
+Report scanning extracts text locally (PDFBox + Tess4J) and then summarizes with Gemini. For OCR to work in dev:
+
+- Install **Tesseract** on your OS (must be available to Tess4J).
+- Ensure **language data** exists (e.g. `eng.traineddata` under a `tessdata/` folder).
+
+Optional env vars (backend):
+
+- `OCR_LANGUAGE` (default `eng`) — e.g. `eng+hin`
+- `OCR_TESSDATA_PATH` — **parent directory** containing `tessdata/` (leave blank to use system defaults)
+- `OCR_MAX_OCR_PAGES` (default `8`) — cap for PDF OCR fallback
+- `OCR_PDF_DPI` (default `300`) — PDF render DPI for OCR
+- `OCR_MIN_PDF_TEXT_CHARS` (default `400`) — if PDF has enough embedded text, skip OCR
 
 **Frontend (`frontend/.env.local` recommended):**
 
