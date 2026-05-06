@@ -530,11 +530,11 @@ export default function PatientDoctorDetailPage() {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-3 text-xs">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 dark:border-emerald-900/50 dark:bg-emerald-950/40">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 text-foreground dark:border-emerald-900/50 dark:bg-emerald-950/40">
                 <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
                 Instant confirmation
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50/80 px-2.5 py-1 dark:border-amber-900/50 dark:bg-amber-950/40">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50/80 px-2.5 py-1 text-foreground dark:border-amber-900/50 dark:bg-amber-950/40">
                 <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" />
                 Doctor reviews first
               </span>

@@ -53,7 +53,7 @@ export default function PatientAiReportsScanPage() {
           <h1 className="mt-2 text-2xl font-bold tracking-tight">Upload a report</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             JPEG, PNG, WebP, or PDF up to 25&nbsp;MB. MediVerse runs Gemini Vision analysis
-            and stores results in your account — this is not medical advice.
+            OCR + AI analysis and stores results in your account — this is not medical advice.
           </p>
         </div>
 

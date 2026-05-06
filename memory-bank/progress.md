@@ -71,7 +71,8 @@ Backend: **`mvn test`** — JUnit suites under `backend/src/test` (includes **`A
 ### Backend
 
 - Migration **`V7__ai_reports.sql`** (`ai_reports` + FK to patients/doctors).
-- **`GeminiReportVisionClient`** (`inline_data`, strict JSON extraction).
+- **OCR → text summarization**: PDFBox native text extraction (PDFs) with Tess4J OCR fallback (capped), then Gemini text-only strict JSON summarization via **`GeminiReportTextClient`**.
+- **Gemini JSON hardening:** report clients extract the first balanced JSON object before parsing (handles preambles/trailing text) to reduce `502` parse failures.
 - **`AiReportService`**, **`AiReportController`** `/api/ai/reports` (multipart scan, CRUD-lite, share/unshare/delete).
 - Storage keys **`reports/{patientId}/{uuid}.{ext}`** (`StorageService.REPORTS_PREFIX`).
 

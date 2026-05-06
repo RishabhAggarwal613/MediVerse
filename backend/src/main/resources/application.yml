@@ -69,6 +69,19 @@ mediverse:
     from: ${MAIL_FROM:noreply@mediverse.local}
   admin:
     emails: ${ADMIN_EMAILS:}
+  ocr:
+    # Tess4J language code(s), e.g. "eng" or "eng+hin". Keep it installed in your tessdata.
+    language: ${OCR_LANGUAGE:eng}
+    # Parent directory containing a `tessdata/` folder. If blank, Tess4J defaults apply.
+    tessdata-path: ${OCR_TESSDATA_PATH:}
+    # If a PDF has at least this many extracted characters, skip OCR fallback.
+    min-pdf-text-chars: ${OCR_MIN_PDF_TEXT_CHARS:400}
+    # Max PDF pages to OCR when falling back (protects CPU/memory).
+    max-ocr-pages: ${OCR_MAX_OCR_PAGES:8}
+    # DPI used when rendering PDF pages for OCR (Tesseract is trained around 300 DPI).
+    pdf-ocr-dpi: ${OCR_PDF_DPI:300}
+    # Safety cap: maximum rendered pixels per page (width*height).
+    max-rendered-pixels: ${OCR_MAX_RENDERED_PIXELS:12000000}
   appointment:
     booking-horizon-days: ${APPT_BOOKING_HORIZON_DAYS:7}
     cancel-window-hours: ${APPT_CANCEL_WINDOW_HOURS:2}

@@ -7,9 +7,9 @@ type Role = "patient" | "doctor";
 
 const pillStyles: Record<Role, string> = {
   patient:
-    "border-brand-200/80 bg-brand-50/90 text-brand-800 dark:border-brand-500/30 dark:bg-brand-950/50 dark:text-brand-200",
+    "border-brand-200/80 bg-brand-50/90 text-brand-800 dark:border-brand-500/35 dark:bg-black/40 dark:text-brand-200",
   doctor:
-    "border-teal-200/80 bg-teal-50/90 text-teal-900 dark:border-teal-800/80 dark:bg-teal-950/60 dark:text-teal-100",
+    "border-teal-200/80 bg-teal-50/90 text-teal-900 dark:border-teal-800/80 dark:bg-black/40 dark:text-teal-100",
 };
 
 const titleStyles: Record<Role, string> = {

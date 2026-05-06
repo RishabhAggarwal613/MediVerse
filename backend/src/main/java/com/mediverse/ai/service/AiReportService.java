@@ -1,6 +1,6 @@
 package com.mediverse.ai.service;
 
-import com.mediverse.ai.client.GeminiReportVisionClient;
+import com.mediverse.ai.client.GeminiReportTextClient;
 import com.mediverse.ai.domain.AiReport;
 import com.mediverse.ai.domain.AiReportFindingSnapshot;
 import com.mediverse.ai.dto.AiReportDetailDto;
@@ -43,7 +43,8 @@ public class AiReportService {
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
     private final StorageService storageService;
-    private final GeminiReportVisionClient geminiReportVisionClient;
+    private final ReportTextExtractor reportTextExtractor;
+    private final GeminiReportTextClient geminiReportTextClient;
 
     @Transactional
     public AiReportDetailDto scan(User caller, MultipartFile file) {
@@ -63,8 +64,9 @@ public class AiReportService {
                 StorageService.buildKey(
                         StorageService.REPORTS_PREFIX, patient.getId(), sanitizeMimeForStorage(mime));
 
-        GeminiReportVisionClient.GeminiReportParseResult analyzed =
-                geminiReportVisionClient.analyzeReport(bytes, mime);
+        ReportTextExtractor.ExtractedText extracted = reportTextExtractor.extract(bytes, mime);
+        GeminiReportTextClient.GeminiReportParseResult analyzed =
+                geminiReportTextClient.analyzeReportText(extracted.text());
 
         storageService.upload(storageKey, bytes, mime);
 

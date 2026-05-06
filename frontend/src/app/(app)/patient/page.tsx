@@ -150,7 +150,7 @@ export default function PatientHomePage() {
       <Container className="relative z-[1] max-w-6xl">
         <header className="flex flex-wrap items-start gap-6">
           <div className="max-w-xl flex-1">
-            <div className="inline-flex items-center gap-2 rounded-full border border-brand-200/80 bg-brand-50/90 px-3 py-1 text-xs font-medium text-brand-800 shadow-sm backdrop-blur dark:border-brand-500/30 dark:bg-brand-950/50 dark:text-brand-200">
+            <div className="inline-flex items-center gap-2 rounded-full border border-brand-200/80 bg-brand-50/90 px-3 py-1 text-xs font-medium text-brand-800 shadow-sm backdrop-blur dark:border-brand-500/35 dark:bg-black/40 dark:text-brand-200">
               <ShieldCheck className="h-3.5 w-3.5" />
               Your care dashboard
             </div>

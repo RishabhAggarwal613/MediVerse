@@ -182,7 +182,7 @@ export default function DoctorAvailabilityPage() {
     <AppPageShell variant="doctor">
       <Container className="relative z-[1] max-w-5xl pb-16">
         <header className="mb-8">
-          <p className="inline-flex items-center gap-2 rounded-full border border-teal-200/80 bg-teal-50/90 px-3 py-1 text-xs font-medium text-teal-900 shadow-sm backdrop-blur dark:border-teal-800/80 dark:bg-teal-950/60 dark:text-teal-100">
+          <p className="inline-flex items-center gap-2 rounded-full border border-teal-200/80 bg-teal-50/90 px-3 py-1 text-xs font-medium text-teal-900 shadow-sm backdrop-blur dark:border-teal-800/80 dark:bg-black/40 dark:text-teal-100">
             <CalendarClock className="h-3.5 w-3.5" />
             Scheduling
           </p>
