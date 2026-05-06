@@ -129,6 +129,17 @@ cp .env.example .env
 
 Duplicate any **`NEXT_PUBLIC_*`** keys you need into **`frontend/.env.local`**. Next.js loads public env from the **`frontend/`** working directory when you run `npm run dev` there—the repo-root `.env` alone does not inject those into the browser bundle.
 
+#### Google Calendar (video visits — Google Meet links in emails)
+
+1. In **Google Cloud Console** (same or separate project): enable **Google Calendar API**.
+2. Set **`GOOGLE_CALENDAR_ENABLED=true`** in repo-root **`.env`**.
+3. Provide **either** the **OAuth refresh-token path** (recommended for a real user calendar / Meet) **or** a **service account**:
+
+   - **OAuth:** Create an **OAuth 2.0 Client ID** (Desktop or Web application). To use [Google OAuth 2.0 Playground](https://developers.google.com/oauthplayground/), add **`https://developers.google.com/oauthplayground`** as an **authorized redirect URI** on that client. In Playground: gear icon → use your client id/secret → choose scope **`https://www.googleapis.com/auth/calendar.events`** → **Authorize APIs** → **Exchange authorization code for tokens** → copy the **refresh token** into **`GOOGLE_CALENDAR_OAUTH_REFRESH_TOKEN`**, and put the client id/secret in **`GOOGLE_CALENDAR_OAUTH_CLIENT_ID`** / **`GOOGLE_CALENDAR_OAUTH_CLIENT_SECRET`**.
+   - **Service account:** Download JSON, set **`GOOGLE_CALENDAR_SERVICE_ACCOUNT_JSON=file:/absolute/path/to/key.json`**. Google Workspace setups may require **`GOOGLE_CALENDAR_DELEGATED_USER`** and domain-wide delegation; see **`.env.example`** comments.
+
+4. Restart the API. Logs should show **`Google Calendar API client ready`** (otherwise check missing env or API enablement).
+
 ### 3. Start MailHog
 
 ```bash
@@ -166,7 +177,7 @@ npm run dev
 
 Authoritative key list and comments: **`.env.example`**.
 
-**Backend (repo-root `.env` or OS env):** `DB_URL` / `DB_USER` / `DB_PASSWORD`, `JWT_SECRET`, `AWS_*`, `GEMINI_API_KEY` and model names, `MAIL_*`, `CORS_ALLOWED_ORIGINS`, `ADMIN_EMAILS`, `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, optional `APPT_*` horizon/window overrides.
+**Backend (repo-root `.env` or OS env):** `DB_URL` / `DB_USER` / `DB_PASSWORD`, `JWT_SECRET`, `AWS_*`, `GEMINI_API_KEY` and model names, `MAIL_*`, `CORS_ALLOWED_ORIGINS`, `ADMIN_EMAILS`, `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, optional **`GOOGLE_CALENDAR_*`** (Calendar API + Meet for video bookings), optional `APPT_*` horizon/window overrides.
 
 **Frontend (`frontend/.env.local` recommended):**
 

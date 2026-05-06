@@ -231,10 +231,16 @@ export default function PatientDoctorDetailPage() {
       reason?: string;
       consultationMode: VisitTypeFilter;
     }) => bookAppointment({ slotId, reason: r, consultationMode: cm }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ["appointments"] });
       void queryClient.invalidateQueries({ queryKey: ["doctor", id, "slots"] });
       setPickedSlot(null);
+      if (data.status === "CONFIRMED" && data.consultationMode === "VIDEO") {
+        const raw = data.googleCalendarHtmlLink?.trim();
+        if (typeof window !== "undefined" && raw && raw.length > 0) {
+          window.open(raw, "_blank", "noopener,noreferrer");
+        }
+      }
     },
   });
 

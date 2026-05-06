@@ -21,6 +21,7 @@ tooling or dependencies change.
 | AWS SDK v2 | 2.28.16 (`s3`) |
 | springdoc-openapi | **2.8.17** (⚠ see "Gotchas" below — 2.6.0 is incompatible with Boot 3.5) |
 | Thymeleaf | 3.1.3 |
+| `google-api-services-calendar` | **v3-rev20250404-2.0.0** (optional Google Calendar + Meet) |
 | H2 (test only) | latest (Boot-managed) |
 
 ### Frontend
@@ -46,7 +47,7 @@ tooling or dependencies change.
 - **MySQL 8.0.45** — host-installed, NOT containerized.
 - Database: `mediverse`, charset `utf8mb4`, collation `utf8mb4_unicode_ci`.
 - User: `mediverse@localhost`, password `mediversepass` (dev only).
-- **Flyway (dev, host MySQL):** through **`V9__doctor_practice_address.sql`** — adds nullable **`practice_address_formatted`**, **`practice_latitude`**, **`practice_longitude`**, **`practice_place_id`** on **`doctors`** (after **`V8`** `practice_city` / `languages`).
+- **Flyway (dev, host MySQL):** **`V9`** adds practice address + coordinates on **`doctors`**. Later migrations add consultation modes (**`V10`–`V12`**), slot resets (**`V13`**), and **`V14`** **`google_calendar_event_id` / `google_calendar_calendar_id`** on **`appointments`** for optional Google Calendar cleanup. See **`backend/src/main/resources/db/migration`**.
 
 ## Local setup
 
@@ -107,6 +108,7 @@ Highlights:
 - `CORS_ALLOWED_ORIGINS` — comma-separated, binds to `List<String>`.
 - `ADMIN_EMAILS` — comma-separated allowlist for `/admin/verifications`.
 - `APPT_BOOKING_HORIZON_DAYS=7`, `APPT_CANCEL_WINDOW_HOURS=2`.
+- **Google Calendar (optional):** `GOOGLE_CALENDAR_ENABLED`, `GOOGLE_CALENDAR_OAUTH_*` (refresh token path) or `GOOGLE_CALENDAR_SERVICE_ACCOUNT_JSON`, optional `GOOGLE_CALENDAR_DELEGATED_USER`, `GOOGLE_CALENDAR_CALENDAR_ID`. When enabled, **video** bookings get a **Google Meet** link stored on the appointment; DTO includes `meetJoinUrl` plus `googleCalendarHtmlLink` (open the existing event). Booking/approve emails include Meet when present and a dedicated “Video meeting link” email is sent to both patient + doctor once Meet is generated. **Meet via API** often needs a **Google Workspace** account or OAuth as a user with Meet; plain service accounts without delegation may not receive Meet links—see **README** (OAuth Playground) and `.env.example`.
 
 Frontend uses `NEXT_PUBLIC_API_BASE_URL` (`http://localhost:8080/api`),
 `NEXT_PUBLIC_GOOGLE_OAUTH_URL`, and optionally **`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`**
@@ -146,6 +148,7 @@ com.mediverse
 │   ├── domain/ (User, Patient, Doctor + enums)
 │   └── repository/
 ├── email/ EmailService (+ Thymeleaf impl)
+├── calendar/ GoogleCalendarProperties, GoogleCalendarSyncService (optional Calendar API)
 ├── storage/ StorageService (+ LocalFs / S3 adapters, LocalStorageWebConfig)
 ├── common/ (api envelope, config incl. StorageProperties + AwsProperties,
 │            exception handler, security JSON handlers)

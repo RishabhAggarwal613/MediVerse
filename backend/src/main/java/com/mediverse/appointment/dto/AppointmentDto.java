@@ -19,6 +19,10 @@ public record AppointmentDto(
         String consultationMode,
         /** Populated after external scheduling hook (Calendly / Meet); often null today. */
         String meetJoinUrl,
+        /**
+         * Google Calendar event page when the API created an event; opens the visit in Calendar (web).
+         */
+        String googleCalendarHtmlLink,
         /** Doctor practice street — optional for navigation when in-clinic. */
         String practiceAddressFormatted,
         BigDecimal practiceLatitude,

@@ -76,6 +76,7 @@ class AppointmentControllerTest {
                                         null,
                                         null,
                                         null,
+                                        null,
                                         null)));
 
         mockMvc.perform(get("/api/appointments/me"))

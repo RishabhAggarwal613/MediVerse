@@ -28,6 +28,8 @@ mediverse:
     cancel-window-hours: 2
   mail:
     from: noreply@test.local
+  google-calendar:
+    enabled: false
   storage:
     provider: LOCAL
     local:

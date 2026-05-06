@@ -16,7 +16,9 @@ export function GoogleCalendarAppointmentButton({
   role: "patient" | "doctor";
   className?: string;
 }) {
-  const href = appointmentGoogleCalendarHref(appointment, role);
+  const href =
+    appointment.googleCalendarHtmlLink?.trim() ||
+    appointmentGoogleCalendarHref(appointment, role);
   if (!href) return null;
 
   return (

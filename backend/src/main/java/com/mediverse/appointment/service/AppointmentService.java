@@ -6,6 +6,7 @@ import com.mediverse.appointment.dto.AppointmentDto;
 import com.mediverse.appointment.dto.BookAppointmentRequest;
 import com.mediverse.appointment.dto.CompleteAppointmentRequest;
 import com.mediverse.appointment.repository.AppointmentRepository;
+import com.mediverse.calendar.GoogleCalendarSyncService;
 import com.mediverse.common.api.ApiException;
 import com.mediverse.common.config.properties.AppProperties;
 import com.mediverse.doctor.domain.ConsultationMode;
@@ -28,14 +29,14 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
-@RequiredArgsConstructor
 public class AppointmentService {
 
     private static final ZoneId ZONE = ZoneId.systemDefault();
@@ -50,6 +51,27 @@ public class AppointmentService {
     private final DoctorRepository doctorRepository;
     private final AppProperties appProperties;
     private final EmailService emailService;
+    private final GoogleCalendarSyncService googleCalendarSyncService;
+    private final TransactionTemplate transactionTemplate;
+
+    public AppointmentService(
+            AppointmentRepository appointmentRepository,
+            TimeSlotRepository timeSlotRepository,
+            PatientRepository patientRepository,
+            DoctorRepository doctorRepository,
+            AppProperties appProperties,
+            EmailService emailService,
+            GoogleCalendarSyncService googleCalendarSyncService,
+            PlatformTransactionManager transactionManager) {
+        this.appointmentRepository = appointmentRepository;
+        this.timeSlotRepository = timeSlotRepository;
+        this.patientRepository = patientRepository;
+        this.doctorRepository = doctorRepository;
+        this.appProperties = appProperties;
+        this.emailService = emailService;
+        this.googleCalendarSyncService = googleCalendarSyncService;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+    }
 
     @Transactional(readOnly = true)
     public List<AppointmentDto> listMine(User user, String statusRaw) {
@@ -79,125 +101,198 @@ public class AppointmentService {
         return toDtoWithDetails(appointment);
     }
 
-    @Transactional
+    /** Book flow: commit DB first, then Calendar + Meet + emails, then return DTO including links. */
     public AppointmentDto book(User user, BookAppointmentRequest body) {
-        if (user.getRole() != Role.PATIENT) {
-            throw ApiException.forbidden("Only patients can book appointments");
+        Appointment saved =
+                transactionTemplate.execute(
+                        status -> {
+                            if (user.getRole() != Role.PATIENT) {
+                                throw ApiException.forbidden("Only patients can book appointments");
+                            }
+                            Patient patient = patientOrThrow(user);
+
+                            List<TimeSlot> peers =
+                                    timeSlotRepository.lockMomentPeersForSlot(body.slotId());
+                            if (peers.isEmpty()) {
+                                throw ApiException.notFound("Time slot not found");
+                            }
+
+                            TimeSlot slot =
+                                    peers.stream()
+                                            .filter(t -> t.getId().equals(body.slotId()))
+                                            .findFirst()
+                                            .orElseThrow(
+                                                    () -> ApiException.badRequest(
+                                                            "Time slot does not match the selected slot"));
+
+                            Doctor doctor = slot.getDoctor();
+                            assertPublishableDoctor(doctor);
+
+                            if (peers.stream().anyMatch(TimeSlot::isBooked)) {
+                                throw ApiException.conflict("This slot was just booked. Please pick another.");
+                            }
+
+                            LocalDate horizonEnd =
+                                    LocalDate.now().plusDays(appProperties.appointment().bookingHorizonDays());
+                            if (slot.getSlotDate().isAfter(horizonEnd)) {
+                                throw ApiException.badRequest("That date is outside the booking window");
+                            }
+
+                            ConsultationMode bookedMode = resolveBookedConsultationMode(body, doctor, slot);
+
+                            LocalDateTime scheduledAt =
+                                    LocalDateTime.of(slot.getSlotDate(), slot.getStartTime());
+                            Instant nowInst = Instant.now();
+                            LocalDateTime now = LocalDateTime.ofInstant(nowInst, ZONE);
+                            if (scheduledAt.isBefore(now)) {
+                                throw ApiException.badRequest("Cannot book a slot that has already started");
+                            }
+
+                            if (appointmentRepository.existsByPatient_IdAndDoctor_IdAndScheduledAtAndStatusIn(
+                                    patient.getId(),
+                                    doctor.getId(),
+                                    scheduledAt,
+                                    DUPLICATE_GUARD_STATUSES)) {
+                                throw ApiException.conflict(
+                                        "You already have a booking with this doctor at this time.");
+                            }
+
+                            AppointmentStatus initial =
+                                    slot.isRequiresApproval()
+                                            ? AppointmentStatus.PENDING
+                                            : AppointmentStatus.CONFIRMED;
+
+                            String reasonTrimmed = body.reason() == null ? null : body.reason().trim();
+                            String reason =
+                                    reasonTrimmed != null && !reasonTrimmed.isBlank()
+                                            ? reasonTrimmed.substring(
+                                                    0, Math.min(reasonTrimmed.length(), 500))
+                                            : null;
+
+                            Appointment apt =
+                                    Appointment.builder()
+                                            .patient(patient)
+                                            .doctor(doctor)
+                                            .timeSlot(slot)
+                                            .status(initial)
+                                            .reason(reason)
+                                            .consultationMode(bookedMode)
+                                            .scheduledAt(scheduledAt)
+                                            .build();
+
+                            Appointment persisted = appointmentRepository.saveAndFlush(apt);
+                            peers.forEach(t -> t.setBooked(true));
+                            timeSlotRepository.saveAll(peers);
+                            return persisted;
+                        });
+
+        if (saved == null) {
+            throw ApiException.badRequest("Booking failed");
         }
-        Patient patient = patientOrThrow(user);
 
-        List<TimeSlot> peers =
-                timeSlotRepository.lockMomentPeersForSlot(body.slotId());
-        if (peers.isEmpty()) {
-            throw ApiException.notFound("Time slot not found");
+        Appointment out =
+                appointmentRepository.findWithParticipantsById(saved.getId()).orElseThrow();
+        if (saved.getStatus() == AppointmentStatus.CONFIRMED) {
+            syncGoogleCalendarIfPossible(out, out.getTimeSlot());
+            out = appointmentRepository.findWithParticipantsById(saved.getId()).orElseThrow();
         }
 
-        TimeSlot slot =
-                peers.stream()
-                        .filter(t -> t.getId().equals(body.slotId()))
-                        .findFirst()
-                        .orElseThrow(() -> ApiException.badRequest("Time slot does not match the selected slot"));
+        User patientUserEntity = out.getPatient().getUser();
+        User doctorUserEntity = out.getDoctor().getUser();
+        String when =
+                out.getScheduledAt().format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy '·' HH:mm"));
+        String meetForEmails = videoMeetJoinForEmail(out);
 
-        Doctor doctor = slot.getDoctor();
-        assertPublishableDoctor(doctor);
+        emailService.sendAppointmentBookingPatient(
+                patientUserEntity.getEmail(),
+                patientUserEntity.getFullName(),
+                doctorUserEntity.getFullName(),
+                when,
+                out.getStatus().name(),
+                meetForEmails);
+        emailService.sendAppointmentBookingDoctor(
+                doctorUserEntity.getEmail(),
+                doctorUserEntity.getFullName(),
+                patientUserEntity.getFullName(),
+                when,
+                out.getStatus().name(),
+                meetForEmails);
 
-        if (peers.stream().anyMatch(TimeSlot::isBooked)) {
-            throw ApiException.conflict("This slot was just booked. Please pick another.");
+        if (meetForEmails != null && out.getConsultationMode() == ConsultationMode.VIDEO) {
+            emailService.sendVideoMeetingLinkPatient(
+                    patientUserEntity.getEmail(),
+                    patientUserEntity.getFullName(),
+                    doctorUserEntity.getFullName(),
+                    when,
+                    meetForEmails);
+            emailService.sendVideoMeetingLinkDoctor(
+                    doctorUserEntity.getEmail(),
+                    doctorUserEntity.getFullName(),
+                    patientUserEntity.getFullName(),
+                    when,
+                    meetForEmails);
         }
 
-        LocalDate horizonEnd = LocalDate.now().plusDays(appProperties.appointment().bookingHorizonDays());
-        if (slot.getSlotDate().isAfter(horizonEnd)) {
-            throw ApiException.badRequest("That date is outside the booking window");
-        }
-
-        ConsultationMode bookedMode = resolveBookedConsultationMode(body, doctor, slot);
-
-        LocalDateTime scheduledAt =
-                LocalDateTime.of(slot.getSlotDate(), slot.getStartTime());
-        Instant nowInst = Instant.now();
-        LocalDateTime now = LocalDateTime.ofInstant(nowInst, ZONE);
-        if (scheduledAt.isBefore(now)) {
-            throw ApiException.badRequest("Cannot book a slot that has already started");
-        }
-
-        if (appointmentRepository.existsByPatient_IdAndDoctor_IdAndScheduledAtAndStatusIn(
-                patient.getId(), doctor.getId(), scheduledAt, DUPLICATE_GUARD_STATUSES)) {
-            throw ApiException.conflict("You already have a booking with this doctor at this time.");
-        }
-
-        AppointmentStatus initial =
-                slot.isRequiresApproval() ? AppointmentStatus.PENDING : AppointmentStatus.CONFIRMED;
-
-        String reasonTrimmed = body.reason() == null ? null : body.reason().trim();
-        String reason = reasonTrimmed != null && !reasonTrimmed.isBlank() ? reasonTrimmed.substring(0, Math.min(reasonTrimmed.length(), 500)) : null;
-
-        Appointment apt =
-                Appointment.builder()
-                        .patient(patient)
-                        .doctor(doctor)
-                        .timeSlot(slot)
-                        .status(initial)
-                        .reason(reason)
-                        .consultationMode(bookedMode)
-                        .scheduledAt(scheduledAt)
-                        .build();
-
-        Appointment saved = appointmentRepository.saveAndFlush(apt);
-        peers.forEach(t -> t.setBooked(true));
-        timeSlotRepository.saveAll(peers);
-
-        User patientUserEntity = patient.getUser();
-        User doctorUserEntity = doctor.getUser();
-        String when = scheduledAt.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy '·' HH:mm"));
-
-        AppointmentDto dto = toDtoWithDetails(saved);
-        Runnable notify =
-                () -> {
-                    emailService.sendAppointmentBookingPatient(
-                            patientUserEntity.getEmail(), patientUserEntity.getFullName(), doctorUserEntity.getFullName(), when, initial.name());
-                    emailService.sendAppointmentBookingDoctor(
-                            doctorUserEntity.getEmail(),
-                            doctorUserEntity.getFullName(),
-                            patientUserEntity.getFullName(),
-                            when,
-                            initial.name());
-                };
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(
-                    new TransactionSynchronization() {
-                        @Override
-                        public void afterCommit() {
-                            notify.run();
-                        }
-                    });
-        } else {
-            notify.run();
-        }
-        return dto;
+        return toDtoWithDetails(out);
     }
 
-    @Transactional
     public AppointmentDto approve(Long id, User user) {
-        Doctor doctor = doctor(user);
-        Appointment appointment = lockedAppointment(id);
-        assertDoctor(appointment, doctor);
-        assertStatus(appointment, AppointmentStatus.PENDING);
-        appointment.setStatus(AppointmentStatus.CONFIRMED);
-        Appointment saved = appointmentRepository.save(appointment);
+        transactionTemplate.executeWithoutResult(
+                status -> {
+                    Doctor doctor = doctor(user);
+                    Appointment appointment = lockedAppointment(id);
+                    assertDoctor(appointment, doctor);
+                    assertStatus(appointment, AppointmentStatus.PENDING);
+                    appointment.setStatus(AppointmentStatus.CONFIRMED);
+                    appointmentRepository.save(appointment);
+                });
 
-        AppointmentDto dto = toDtoWithDetails(saved);
+        Appointment appointment =
+                appointmentRepository
+                        .findWithParticipantsById(id)
+                        .orElseThrow(() -> ApiException.notFound("Appointment not found"));
+        syncGoogleCalendarIfPossible(appointment, appointment.getTimeSlot());
+        appointment =
+                appointmentRepository
+                        .findWithParticipantsById(id)
+                        .orElseThrow(() -> ApiException.notFound("Appointment not found"));
+
         User patientUser = appointment.getPatient().getUser();
-        User doctorUser = doctor.getUser();
-        Runnable send =
-                () ->
-                        emailService.sendAppointmentApprovedPatient(
-                                patientUser.getEmail(),
-                                patientUser.getFullName(),
-                                doctorUser.getFullName(),
-                                appointment.getScheduledAt()
-                                        .format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy '·' HH:mm")));
-        scheduleAfterCommit(send);
-        return dto;
+        User doctorUser = appointment.getDoctor().getUser();
+        String approvedMeet = videoMeetJoinForEmail(appointment);
+        String whenFormatted =
+                appointment.getScheduledAt()
+                        .format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy '·' HH:mm"));
+
+        emailService.sendAppointmentApprovedPatient(
+                patientUser.getEmail(),
+                patientUser.getFullName(),
+                doctorUser.getFullName(),
+                whenFormatted,
+                approvedMeet);
+        emailService.sendAppointmentApprovedDoctor(
+                doctorUser.getEmail(),
+                doctorUser.getFullName(),
+                patientUser.getFullName(),
+                whenFormatted,
+                approvedMeet);
+
+        if (approvedMeet != null && appointment.getConsultationMode() == ConsultationMode.VIDEO) {
+            emailService.sendVideoMeetingLinkPatient(
+                    patientUser.getEmail(),
+                    patientUser.getFullName(),
+                    doctorUser.getFullName(),
+                    whenFormatted,
+                    approvedMeet);
+            emailService.sendVideoMeetingLinkDoctor(
+                    doctorUser.getEmail(),
+                    doctorUser.getFullName(),
+                    patientUser.getFullName(),
+                    whenFormatted,
+                    approvedMeet);
+        }
+
+        return toDtoWithDetails(appointment);
     }
 
     @Transactional
@@ -206,12 +301,17 @@ public class AppointmentService {
         Appointment appointment = lockedAppointment(id);
         assertDoctor(appointment, doctor);
         assertStatus(appointment, AppointmentStatus.PENDING);
+        googleCalendarSyncService.deleteEventSilently(appointment);
         appointment.setStatus(AppointmentStatus.REJECTED);
+        appointment.setMeetJoinUrl(null);
+        appointment.setGoogleCalendarEventId(null);
+        appointment.setGoogleCalendarCalendarId(null);
+        appointment.setGoogleCalendarHtmlLink(null);
         releaseMomentSlots(appointment);
         Appointment saved = appointmentRepository.save(appointment);
 
         AppointmentDto dto = toDtoWithDetails(saved);
-        User patientUser = appointment.getPatient().getUser();
+        User patientUser = saved.getPatient().getUser();
         User doctorUser = doctor.getUser();
         Runnable send =
                 () ->
@@ -274,12 +374,18 @@ public class AppointmentService {
                             + " hours before the appointment");
         }
 
+        googleCalendarSyncService.deleteEventSilently(appointment);
+
         appointment.setStatus(AppointmentStatus.CANCELLED);
+        appointment.setMeetJoinUrl(null);
+        appointment.setGoogleCalendarEventId(null);
+        appointment.setGoogleCalendarCalendarId(null);
+        appointment.setGoogleCalendarHtmlLink(null);
         releaseMomentSlots(appointment);
         Appointment saved = appointmentRepository.save(appointment);
 
         AppointmentDto dto = toDtoWithDetails(saved);
-        User doctorUser = appointment.getDoctor().getUser();
+        User doctorUser = saved.getDoctor().getUser();
         Runnable send =
                 () ->
                         emailService.sendAppointmentCancelledDoctor(
@@ -290,6 +396,41 @@ public class AppointmentService {
                                         .format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy '·' HH:mm")));
         scheduleAfterCommit(send);
         return dto;
+    }
+
+    private void syncGoogleCalendarIfPossible(Appointment appointment, TimeSlot slot) {
+        if (!googleCalendarSyncService.isUsable()) {
+            return;
+        }
+        String existingId = appointment.getGoogleCalendarEventId();
+        if (existingId != null && !existingId.isBlank()) {
+            return;
+        }
+        googleCalendarSyncService
+                .createAppointmentEvent(appointment, slot)
+                .ifPresent(
+                        ce -> {
+                            appointment.setGoogleCalendarEventId(ce.eventId());
+                            appointment.setGoogleCalendarCalendarId(ce.calendarId());
+                            if (ce.htmlLink() != null && !ce.htmlLink().isBlank()) {
+                                appointment.setGoogleCalendarHtmlLink(ce.htmlLink().trim());
+                            }
+                            if (appointment.getConsultationMode() == ConsultationMode.VIDEO
+                                    && ce.meetJoinUrl() != null
+                                    && !ce.meetJoinUrl().isBlank()) {
+                                appointment.setMeetJoinUrl(ce.meetJoinUrl().trim());
+                            }
+                            appointmentRepository.save(appointment);
+                        });
+    }
+
+    /** Non-null trimmed Meet URL only for video consultations (for transactional emails). */
+    private static String videoMeetJoinForEmail(Appointment a) {
+        if (a.getConsultationMode() != ConsultationMode.VIDEO) {
+            return null;
+        }
+        String u = a.getMeetJoinUrl();
+        return u != null && !u.isBlank() ? u.trim() : null;
     }
 
     private void scheduleAfterCommit(Runnable notify) {
@@ -389,6 +530,7 @@ public class AppointmentService {
                 appointment.getDoctorNote(),
                 appointment.getConsultationMode().name(),
                 appointment.getMeetJoinUrl(),
+                appointment.getGoogleCalendarHtmlLink(),
                 doctor.getPracticeAddressFormatted(),
                 doctor.getPracticeLatitude(),
                 doctor.getPracticeLongitude());

@@ -2,7 +2,7 @@
 
 Phase-by-phase status, working endpoints, and test counts.
 
-> Last updated: **2026-05-06** — **`V13`** FK-safe slot delete, Google Calendar on appointment cards.
+> Last updated: **2026-05-06** — Calendar event links (`V15`), Meet email delivery, appointments UI classification.
 
 ## Phase status
 
@@ -32,11 +32,22 @@ Phase-by-phase status, working endpoints, and test counts.
 - **Flyway `V13__reset_availability_and_unify_slot_booking.sql`** — sync **`is_booked`** across rows sharing `(doctor_id, slot_date, start_time)`; delete unbooked **`time_slots`** only when **no** row in **`appointments`** references them; **`DELETE FROM doctor_availability`** (dev reset — doctors must re-create availability rules).
 - **Runtime:** **`TimeSlotRepository.lockMomentPeersForSlot`** (ordered pessimistic lock); book sets **`booked=true`** on all peer rows; cancel/reject clears all peers for that moment; duplicate guard **`existsByPatient_IdAndDoctor_IdAndScheduledAtAndStatusIn`**. **`deleteUnbookedBetween`** uses **`NOT EXISTS`** appointment reference (same FK rule as **`V13`**).
 
+## Post–Phase 8 — Google Calendar API + Meet (optional)
+
+- **Flyway `V14__google_calendar_event_columns.sql`** — **`google_calendar_event_id`**, **`google_calendar_calendar_id`** on **`appointments`**.
+- **Flyway `V15__google_calendar_html_link.sql`** — **`google_calendar_html_link`** on **`appointments`** (opens existing event in Calendar web).
+- **Backend** — **`GoogleCalendarSyncService`**, **`GoogleCalendarProperties`** (`mediverse.google-calendar.*`). Enables **Google Calendar API** with **`calendar.events`** scope; **VIDEO** visits get **`conferenceData`** (Meet). **Booking/approve flows** persist event + Meet before returning JSON so clients see links immediately; emails show Meet when **`meetJoinUrl`** is set; additionally sends a dedicated **“Video meeting link”** email to both patient + doctor.
+
 ## Post–Phase 8 — appointment calendar UX (shipped)
 
 - **Patient** — **`/patient/appointments`**, home next-appointment card: **Google Calendar** button (prefilled title, time, location / video link, details with meet URL).
 - **Doctor** — **`/doctor/appointments`**: same **Google Calendar** control, **Join video** when applicable, **Meeting link:** line with full URL on video visits.
 - **Code:** **`frontend/src/lib/calendar-links.ts`**, **`frontend/src/components/appointments/google-calendar-appointment-button.tsx`**.
+
+## Post–Phase 8 — appointments dashboard classification (shipped)
+
+- **Patient** — `Pending / Upcoming / Past / Cancelled` tabs + day-grouped lists on **`/patient/appointments`**.
+- **Doctor** — `Pending / Today / Upcoming / Past / Cancelled` tabs + day-grouped lists on **`/doctor/appointments`**.
 
 ## Phase 8 — shipped (original scope)
 

@@ -72,6 +72,18 @@ mediverse:
   appointment:
     booking-horizon-days: ${APPT_BOOKING_HORIZON_DAYS:7}
     cancel-window-hours: ${APPT_CANCEL_WINDOW_HOURS:2}
+  google-calendar:
+    enabled: ${GOOGLE_CALENDAR_ENABLED:false}
+    application-name: ${GOOGLE_CALENDAR_APP_NAME:MediVerse}
+    # One of: OAuth refresh token (recommended for consumer Gmail + Meet) OR service account JSON path.
+    oauth-client-id: ${GOOGLE_CALENDAR_OAUTH_CLIENT_ID:}
+    oauth-client-secret: ${GOOGLE_CALENDAR_OAUTH_CLIENT_SECRET:}
+    oauth-refresh-token: ${GOOGLE_CALENDAR_OAUTH_REFRESH_TOKEN:}
+    service-account-json-path: ${GOOGLE_CALENDAR_SERVICE_ACCOUNT_JSON:}
+    # Google Workspace: impersonate this user when using a service account with domain-wide delegation.
+    delegated-user: ${GOOGLE_CALENDAR_DELEGATED_USER:}
+    # Target calendar (default primary for OAuth/delegation; otherwise service account email).
+    calendar-id: ${GOOGLE_CALENDAR_CALENDAR_ID:}
   storage:
     provider: ${STORAGE_PROVIDER:LOCAL}
     local:

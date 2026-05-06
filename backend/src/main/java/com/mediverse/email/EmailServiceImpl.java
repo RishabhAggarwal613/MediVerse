@@ -94,7 +94,8 @@ public class EmailServiceImpl implements EmailService {
             String patientName,
             String doctorName,
             String when,
-            String intakeStatusPhrase) {
+            String intakeStatusPhrase,
+            String videoMeetJoinUrl) {
         Map<String, Object> vars = new HashMap<>();
         vars.put("title", "Booking received");
         vars.put(
@@ -105,12 +106,20 @@ public class EmailServiceImpl implements EmailService {
                 intakeStatusPhrase.contains("PENDING")
                         ? "Your doctor will confirm this visit shortly."
                         : "Your slot is confirmed.");
+        vars.put(
+                "meetJoinUrl",
+                videoMeetJoinUrl != null && !videoMeetJoinUrl.isBlank() ? videoMeetJoinUrl.trim() : null);
         sendSync(to, "[MediVerse] Appointment booked", "email/appointment-notify", vars);
     }
 
     @Override
     public void sendAppointmentBookingDoctor(
-            String to, String doctorName, String patientName, String when, String intakeStatusPhrase) {
+            String to,
+            String doctorName,
+            String patientName,
+            String when,
+            String intakeStatusPhrase,
+            String videoMeetJoinUrl) {
         Map<String, Object> vars = new HashMap<>();
         vars.put("title", "New booking");
         vars.put(
@@ -125,18 +134,84 @@ public class EmailServiceImpl implements EmailService {
                         + intakeStatusPhrase
                         + ".");
         vars.put("line2", "Review pending requests in MediVerse.");
+        vars.put(
+                "meetJoinUrl",
+                videoMeetJoinUrl != null && !videoMeetJoinUrl.isBlank() ? videoMeetJoinUrl.trim() : null);
         sendSync(to, "[MediVerse] New patient booking", "email/appointment-notify", vars);
     }
 
     @Override
-    public void sendAppointmentApprovedPatient(String to, String patientName, String doctorName, String when) {
+    public void sendAppointmentApprovedPatient(
+            String to, String patientName, String doctorName, String when, String videoMeetJoinUrl) {
         Map<String, Object> vars = new HashMap<>();
         vars.put("title", "Appointment confirmed");
         vars.put(
                 "line1",
                 "Hi " + patientName + ", Dr. " + doctorName + " confirmed your visit on " + when + ".");
         vars.put("line2", null);
+        vars.put(
+                "meetJoinUrl",
+                videoMeetJoinUrl != null && !videoMeetJoinUrl.isBlank() ? videoMeetJoinUrl.trim() : null);
         sendSync(to, "[MediVerse] Appointment confirmed", "email/appointment-notify", vars);
+    }
+
+    @Override
+    public void sendAppointmentApprovedDoctor(
+            String to, String doctorName, String patientName, String when, String videoMeetJoinUrl) {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("title", "Appointment confirmed");
+        vars.put(
+                "line1",
+                "Hi Dr. "
+                        + doctorName
+                        + ", you approved "
+                        + patientName
+                        + "'s visit on "
+                        + when
+                        + ". Calendar details are synced (video links below when applicable).");
+        vars.put("line2", null);
+        vars.put(
+                "meetJoinUrl",
+                videoMeetJoinUrl != null && !videoMeetJoinUrl.isBlank() ? videoMeetJoinUrl.trim() : null);
+        sendSync(to, "[MediVerse] Appointment confirmed — booking details", "email/appointment-notify", vars);
+    }
+
+    @Override
+    public void sendVideoMeetingLinkPatient(
+            String to, String patientName, String doctorName, String when, String meetJoinUrl) {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("title", "Your video meeting link");
+        vars.put(
+                "line1",
+                "Hi "
+                        + patientName
+                        + ", your video visit with Dr. "
+                        + doctorName
+                        + " ("
+                        + when
+                        + ") is ready. Use the link below to join.");
+        vars.put("line2", null);
+        vars.put("meetJoinUrl", meetJoinUrl != null && !meetJoinUrl.isBlank() ? meetJoinUrl.trim() : null);
+        sendSync(to, "[MediVerse] Video meeting link", "email/appointment-notify", vars);
+    }
+
+    @Override
+    public void sendVideoMeetingLinkDoctor(
+            String to, String doctorName, String patientName, String when, String meetJoinUrl) {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("title", "Video meeting link");
+        vars.put(
+                "line1",
+                "Hi Dr. "
+                        + doctorName
+                        + ", your video visit with "
+                        + patientName
+                        + " ("
+                        + when
+                        + ") is ready. Use the link below to join.");
+        vars.put("line2", null);
+        vars.put("meetJoinUrl", meetJoinUrl != null && !meetJoinUrl.isBlank() ? meetJoinUrl.trim() : null);
+        sendSync(to, "[MediVerse] Video meeting link", "email/appointment-notify", vars);
     }
 
     @Override
@@ -147,6 +222,7 @@ public class EmailServiceImpl implements EmailService {
                 "line1",
                 "Hi " + patientName + ", Dr. " + doctorName + " could not approve the request for " + when + ". Pick another slot anytime.");
         vars.put("line2", null);
+        vars.put("meetJoinUrl", null);
         sendSync(to, "[MediVerse] Appointment not approved", "email/appointment-notify", vars);
     }
 
@@ -159,6 +235,7 @@ public class EmailServiceImpl implements EmailService {
                 "line1",
                 "Hi " + patientName + ", your appointment with Dr. " + doctorName + " on " + when + " is marked complete.");
         vars.put("line2", doctorNoteSnippet.isBlank() ? null : "Doctor note: " + doctorNoteSnippet);
+        vars.put("meetJoinUrl", null);
         sendSync(to, "[MediVerse] Appointment completed", "email/appointment-notify", vars);
     }
 
@@ -170,6 +247,7 @@ public class EmailServiceImpl implements EmailService {
                 "line1",
                 "Hi Dr. " + doctorName + ", " + patientName + " cancelled their appointment on " + when + ".");
         vars.put("line2", null);
+        vars.put("meetJoinUrl", null);
         sendSync(to, "[MediVerse] Appointment cancelled", "email/appointment-notify", vars);
     }
 

@@ -431,7 +431,7 @@ All responses wrap in:
 
 ### Appointments — `/api/appointments`
 | POST   | `/`                | PATIENT | Book a slot `{slotId, reason}` |
-| GET    | `/me`              | auth    | My appointments (role-aware); dto includes **`practiceAddressFormatted`**, **`practiceLatitude`**, **`practiceLongitude`** for patient navigation UX |
+| GET    | `/me`              | auth    | My appointments (role-aware); dto includes **`meetJoinUrl`** and **`googleCalendarHtmlLink`** when **Google Calendar API** created an event (optional GCP + **`GOOGLE_CALENDAR_*`**), plus practice address for navigation |
 | GET    | `/{id}`            | auth    | Detail (must be involved party) |
 | PATCH  | `/{id}/approve`    | DOCTOR  | Approve `PENDING` |
 | PATCH  | `/{id}/reject`     | DOCTOR  | Reject `PENDING` |

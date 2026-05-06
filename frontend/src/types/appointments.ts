@@ -16,6 +16,8 @@ export interface AppointmentDto {
   consultationMode?: string | null;
   /** Video join link when scheduled externally (e.g. Meet); often unset. */
   meetJoinUrl?: string | null;
+  /** Google Calendar event page when the API created the booking event. */
+  googleCalendarHtmlLink?: string | null;
   /** Doctor practice location for maps — set when doctor saved address/coords */
   practiceAddressFormatted?: string | null;
   practiceLatitude?: number | null;

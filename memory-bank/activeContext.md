@@ -3,28 +3,21 @@
 Update at phase boundaries or when pausing mid-phase. Answers: what happened,
 what's in progress, what's next.
 
-> Last updated: **2026-05-06** — Memory bank refresh: **`V13`** FK-safe pruning, Calendar UX on appointment cards.
+> Last updated: **2026-05-06** — Google Calendar event links + Meet emails; appointments dashboards reclassified.
 
 ## Current focus
 
-**Phase 8** remains the last numbered phase. **Appointments:** cross-modality **one moment** booking (peer
-`time_slots` locked/marked booked together; cancel/reject clears the moment), duplicate guard on **exact
-`scheduledAt`**, **`deleteUnbookedBetween`** skips rows still referenced by **`appointments`**. **`V13`** syncs
-`is_booked` across sibling rows, deletes only unbooked slots **not** FK-referenced by any appointment, clears
-**`doctor_availability`** (dev reset — re-seed rules). **Frontend:** **Google Calendar** add-to-calendar on patient
-and doctor appointment cards (**`lib/calendar-links.ts`**, **`GoogleCalendarAppointmentButton`**), visible **video
-meeting link** text on cards where applicable.
+**Phase 8** remains the last numbered phase. **Appointments:** shared-moment slot booking (**`lockMomentPeersForSlot`**), **`meet_join_url`** + **`google_calendar_html_link`** when Calendar API creates an event (**`V15`**). **`book` / `approve`** commit to DB first, then sync Calendar + Meet, then emails and JSON so clients see links immediately. Dashboards now classify appointments via tabs (patient: Pending/Upcoming/Past/Cancelled; doctor: Pending/Today/Upcoming/Past/Cancelled).
 
 **Optional next:** Gemini 503 retries/backoff, Dockerfile stack (see **`docs/ARCHITECTURE.md`** Phase 8 reminders).
 
 ## Recent changes (2026-05)
 
-- **Appointments / slots:** shared-moment booking + release; **`V13`** + runtime **`deleteUnbookedBetween`** avoid
-  deleting **`time_slots`** still referenced by **`appointments`** (FK 1451 fix).
-- **Frontend appointments:** **Google Calendar** template links + **meeting URL** on patient/doctor cards and patient
-  home “next appointment”.
-- **Earlier in May:** **`V9`** practice address + lat/lon; **`AppointmentDto`** practice fields; patient **Navigate**;
-  **`PracticeAddressPicker`**; slot-list stability around book.
+- **Backend Google Calendar:** optional OAuth refresh token **or** service account (+ Workspace **`delegated-user`**); creates event + Meet for **VIDEO** when the booking is **CONFIRMED** (auto at book) or when the doctor **approves** a **PENDING** request; persists **`google_calendar_html_link`** so UI opens the **existing** event; deletes remote event on patient cancel / doctor reject. Flyway **`V14`** + **`V15`**.
+- **Email:** booking/approval emails include Meet when present; additionally sends a dedicated **“Video meeting link”** email to both patient + doctor when Meet is generated.
+- **Frontend appointments UI:** tabbed classification + date-grouped sections on both patient and doctor appointments pages.
+- **Shared-moment slots + `V13` FK-safe cleanup;** frontend **manual** Google Calendar URLs + meeting link on cards (**`calendar-links.ts`**).
+- **Earlier in May:** **`V9`** practice address + lat/lon; patient **Navigate**; **`PracticeAddressPicker`**.
 
 ## What's next
 

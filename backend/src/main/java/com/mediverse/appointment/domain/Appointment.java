@@ -68,6 +68,16 @@ public class Appointment {
     @Column(name = "meet_join_url", length = 1024)
     private String meetJoinUrl;
 
+    @Column(name = "google_calendar_event_id", length = 512)
+    private String googleCalendarEventId;
+
+    @Column(name = "google_calendar_calendar_id", length = 256)
+    private String googleCalendarCalendarId;
+
+    /** {@code Event.htmlLink} from Google Calendar API — open event in Google Calendar web. */
+    @Column(name = "google_calendar_html_link", length = 2048)
+    private String googleCalendarHtmlLink;
+
     @Column(name = "calendly_event_uri", length = 512)
     private String calendlyEventUri;
 
